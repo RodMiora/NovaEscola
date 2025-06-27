@@ -1,25 +1,34 @@
-import { createClient } from '@vercel/kv';
+import { createClient } from 'redis';
 import { Aluno, Video, VideosLiberados } from '../hooks/types';
 
-// Variável para armazenar a instância do cliente KV
-let kvClient: ReturnType<typeof createClient> | null = null;
+// Variável para armazenar a instância do cliente Redis
+let redisClient: ReturnType<typeof createClient> | null = null;
 
-// Função para inicializar o cliente KV de forma lazy
-function getKVClient(): ReturnType<typeof createClient> {
-  if (!kvClient) {
-    // Fallback para desenvolvimento/teste
+// Função para inicializar o cliente Redis de forma lazy
+function getRedisClient(): ReturnType<typeof createClient> {
+  if (!redisClient) {
+    console.log('🔍 Verificando variáveis de ambiente Redis:');
+    console.log('KV_REST_API_URL:', process.env.KV_REST_API_URL ? 'Definida' : 'Não definida');
+    console.log('KV_REST_API_TOKEN:', process.env.KV_REST_API_TOKEN ? 'Definida' : 'Não definida');
+    console.log('NODE_ENV:', process.env.NODE_ENV);
+    
     if (!process.env.KV_REST_API_URL || !process.env.KV_REST_API_TOKEN) {
-      console.warn('⚠️ Variáveis KV não encontradas, usando cliente mock');
-      // Retornar um cliente mock ou usar localStorage/arquivo
-      throw new Error('KV não configurado - verifique as variáveis de ambiente no Vercel');
+      throw new Error('❌ Variáveis KV_REST_API_URL e KV_REST_API_TOKEN são obrigatórias');
     }
     
-    kvClient = createClient({
+    // Configurar cliente Redis para Redis Cloud (configuração TLS corrigida)
+    redisClient = createClient({
       url: process.env.KV_REST_API_URL,
-      token: process.env.KV_REST_API_TOKEN,
+      password: process.env.KV_REST_API_TOKEN
     });
+    
+    // Conectar ao Redis
+    redisClient.connect().catch(console.error);
+    
+    console.log('✅ Cliente Redis inicializado com sucesso');
   }
-  return kvClient;
+  
+  return redisClient;
 }
 
 // Chaves para o KV store
@@ -34,28 +43,30 @@ export class DataService {
   // ========== ALUNOS ==========
   static async getAlunos(): Promise<Aluno[]> {
     try {
-      const kv = getKVClient();
-      const alunos = await kv.get<Aluno[]>(KEYS.ALUNOS);
+      const redis = getRedisClient();
+      const alunosStr = await redis.get(KEYS.ALUNOS);
+      const alunos = alunosStr ? JSON.parse(alunosStr) : [];
       // Garantir que sempre retorna um array válido
       return Array.isArray(alunos) ? alunos : [];
     } catch (error) {
-      console.error('Erro ao buscar alunos:', error);
+      console.error('❌ Erro ao buscar alunos:', error);
       // Retornar array vazio em caso de erro
       return [];
     }
   }
 
   static async saveAlunos(alunos: Aluno[]): Promise<void> {
+    if (!Array.isArray(alunos)) {
+      throw new Error('❌ Dados inválidos: esperado array de alunos');
+    }
+
     try {
-      // Validar que é um array antes de salvar
-      if (!Array.isArray(alunos)) {
-        throw new Error('Dados de alunos devem ser um array');
-      }
-      const kv = getKVClient();
-      await kv.set(KEYS.ALUNOS, alunos);
-      await kv.set(KEYS.LAST_UPDATED, Date.now());
+      const redis = getRedisClient();
+      await redis.set(KEYS.ALUNOS, JSON.stringify(alunos));
+      await redis.set(KEYS.LAST_UPDATED, new Date().toISOString());
+      console.log('✅ Alunos salvos com sucesso no Redis');
     } catch (error) {
-      console.error('Erro ao salvar alunos:', error);
+      console.error('❌ Erro ao salvar alunos:', error);
       throw error;
     }
   }
@@ -118,8 +129,9 @@ export class DataService {
   // ========== VÍDEOS ==========
   static async getVideos(): Promise<Video[]> {
     try {
-      const kv = getKVClient();
-      const videos = await kv.get<Video[]>(KEYS.VIDEOS);
+      const redis = getRedisClient();
+      const videosStr = await redis.get(KEYS.VIDEOS);
+      const videos = videosStr ? JSON.parse(videosStr) : [];
       return Array.isArray(videos) ? videos : [];
     } catch (error) {
       console.error('Erro ao buscar vídeos:', error);
@@ -132,9 +144,9 @@ export class DataService {
       if (!Array.isArray(videos)) {
         throw new Error('Dados de vídeos devem ser um array');
       }
-      const kv = getKVClient();
-      await kv.set(KEYS.VIDEOS, videos);
-      await kv.set(KEYS.LAST_UPDATED, Date.now());
+      const redis = getRedisClient();
+      await redis.set(KEYS.VIDEOS, JSON.stringify(videos));
+      await redis.set(KEYS.LAST_UPDATED, new Date().toISOString());
     } catch (error) {
       console.error('Erro ao salvar vídeos:', error);
       throw error;
@@ -188,8 +200,9 @@ export class DataService {
   // ========== VÍDEOS LIBERADOS ==========
   static async getVideosLiberados(): Promise<VideosLiberados> {
     try {
-      const kv = getKVClient();
-      const videosLiberados = await kv.get<VideosLiberados>(KEYS.VIDEOS_LIBERADOS);
+      const redis = getRedisClient();
+      const videosLiberadosStr = await redis.get(KEYS.VIDEOS_LIBERADOS);
+      const videosLiberados = videosLiberadosStr ? JSON.parse(videosLiberadosStr) : {};
       return videosLiberados || {};
     } catch (error) {
       console.error('Erro ao buscar vídeos liberados:', error);
@@ -199,9 +212,9 @@ export class DataService {
 
   static async saveVideosLiberados(videosLiberados: VideosLiberados): Promise<void> {
     try {
-      const kv = getKVClient();
-      await kv.set(KEYS.VIDEOS_LIBERADOS, videosLiberados);
-      await kv.set(KEYS.LAST_UPDATED, Date.now());
+      const redis = getRedisClient();
+      await redis.set(KEYS.VIDEOS_LIBERADOS, JSON.stringify(videosLiberados));
+      await redis.set(KEYS.LAST_UPDATED, new Date().toISOString());
     } catch (error) {
       console.error('Erro ao salvar vídeos liberados:', error);
       throw error;
@@ -252,28 +265,29 @@ export class DataService {
   }
 
   // ========== UTILITÁRIOS ==========
-  static async getLastUpdated(): Promise<number> {
+  static async getLastUpdated(): Promise<string> {
     try {
-      const kv = getKVClient();
-      const lastUpdated = await kv.get<number>(KEYS.LAST_UPDATED);
-      return lastUpdated || 0;
+      const redis = getRedisClient();
+      const lastUpdated = await redis.get(KEYS.LAST_UPDATED);
+      return lastUpdated || new Date().toISOString();
     } catch (error) {
       console.error('Erro ao buscar última atualização:', error);
-      return 0;
+      return new Date().toISOString();
     }
   }
 
   static async clearAllData(): Promise<void> {
     try {
-      const kv = getKVClient();
+      const redis = getRedisClient();
       await Promise.all([
-        kv.del(KEYS.ALUNOS),
-        kv.del(KEYS.VIDEOS),
-        kv.del(KEYS.VIDEOS_LIBERADOS),
-        kv.del(KEYS.LAST_UPDATED)
+        redis.del(KEYS.ALUNOS),
+        redis.del(KEYS.VIDEOS),
+        redis.del(KEYS.VIDEOS_LIBERADOS),
+        redis.del(KEYS.LAST_UPDATED)
       ]);
+      console.log('✅ Todos os dados foram limpos');
     } catch (error) {
-      console.error('Erro ao limpar dados:', error);
+      console.error('❌ Erro ao limpar dados:', error);
       throw error;
     }
   }
