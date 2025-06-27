@@ -1,8 +1,20 @@
-import { kv } from '@vercel/kv';
-
-// Remove a configuração manual do createClient
-// O kv importado automaticamente usa KV_REST_API_URL e KV_REST_API_TOKEN
+import { createClient } from '@vercel/kv';
 import { Aluno, Video, VideosLiberados } from '../hooks/types';
+
+// Debug temporário - remover após resolver
+console.log('Variáveis KV disponíveis:', {
+  KV_REST_API_URL: !!process.env.KV_REST_API_URL,
+  KV_REST_API_TOKEN: !!process.env.KV_REST_API_TOKEN,
+  KVRESTAPIURL: !!process.env.KVRESTAPIURL,
+  KVRESTAPITOKEN: !!process.env.KVRESTAPITOKEN,
+  NODE_ENV: process.env.NODE_ENV,
+});
+
+// Configuração manual do cliente KV
+const kv = createClient({
+  url: process.env.KV_REST_API_URL!,
+  token: process.env.KV_REST_API_TOKEN!,
+});
 
 // Chaves para o KV store
 const KEYS = {
