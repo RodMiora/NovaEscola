@@ -1,34 +1,18 @@
-import { createClient } from 'redis';
+import { Redis } from '@upstash/redis';
 import { Aluno, Video, VideosLiberados } from '../hooks/types';
 
-// Variável para armazenar a instância do cliente Redis
-let redisClient: ReturnType<typeof createClient> | null = null;
-
-// Função para inicializar o cliente Redis de forma lazy
-function getRedisClient(): ReturnType<typeof createClient> {
-  if (!redisClient) {
-    console.log('🔍 Verificando variáveis de ambiente Redis:');
-    console.log('KV_REST_API_URL:', process.env.KV_REST_API_URL ? 'Definida' : 'Não definida');
-    console.log('KV_REST_API_TOKEN:', process.env.KV_REST_API_TOKEN ? 'Definida' : 'Não definida');
-    console.log('NODE_ENV:', process.env.NODE_ENV);
-    
-    if (!process.env.KV_REST_API_URL || !process.env.KV_REST_API_TOKEN) {
-      throw new Error('❌ Variáveis KV_REST_API_URL e KV_REST_API_TOKEN são obrigatórias');
-    }
-    
-    // Configurar cliente Redis para Redis Cloud com TLS habilitado
-    redisClient = createClient({
-      url: process.env.KV_REST_API_URL.replace('redis://', 'rediss://'),
-      password: process.env.KV_REST_API_TOKEN
-    });
-    
-    // Conectar ao Redis
-    redisClient.connect().catch(console.error);
-    
-    console.log('✅ Cliente Redis inicializado com sucesso');
-  }
+// Função para obter a instância do Redis (usando Upstash)
+function getRedisClient(): Redis {
+  console.log('🔍 Verificando variáveis de ambiente Upstash:');
+  console.log('UPSTASH_REDIS_REST_URL:', process.env.UPSTASH_REDIS_REST_URL ? 'Definida' : 'Não definida');
+  console.log('UPSTASH_REDIS_REST_TOKEN:', process.env.UPSTASH_REDIS_REST_TOKEN ? 'Definida' : 'Não definida');
+  console.log('NODE_ENV:', process.env.NODE_ENV);
   
-  return redisClient;
+  // Criar cliente Redis usando Upstash (API REST)
+  const redis = Redis.fromEnv();
+  
+  console.log('✅ Cliente Upstash Redis inicializado com sucesso');
+  return redis;
 }
 
 // Chaves para o KV store
@@ -45,50 +29,35 @@ export class DataService {
     try {
       const redis = getRedisClient();
       const alunosStr = await redis.get(KEYS.ALUNOS);
-      const alunos = alunosStr ? JSON.parse(alunosStr) : [];
+      const alunos = alunosStr ? JSON.parse(alunosStr as string) : [];
       // Garantir que sempre retorna um array válido
       return Array.isArray(alunos) ? alunos : [];
     } catch (error) {
       console.error('❌ Erro ao buscar alunos:', error);
-      // Retornar array vazio em caso de erro
       return [];
     }
   }
 
   static async saveAlunos(alunos: Aluno[]): Promise<void> {
-    if (!Array.isArray(alunos)) {
-      throw new Error('❌ Dados inválidos: esperado array de alunos');
-    }
-
     try {
       const redis = getRedisClient();
       await redis.set(KEYS.ALUNOS, JSON.stringify(alunos));
       await redis.set(KEYS.LAST_UPDATED, new Date().toISOString());
-      console.log('✅ Alunos salvos com sucesso no Redis');
+      console.log('✅ Alunos salvos com sucesso');
     } catch (error) {
       console.error('❌ Erro ao salvar alunos:', error);
       throw error;
     }
   }
 
-  static async adicionarAluno(novoAluno: Omit<Aluno, 'id'>): Promise<Aluno> {
+  static async adicionarAluno(aluno: Aluno): Promise<void> {
     try {
       const alunos = await this.getAlunos();
-      
-      // Gerar ID único
-      const id = Date.now().toString() + Math.random().toString(36).substr(2, 9);
-      
-      const alunoCompleto: Aluno = {
-        ...novoAluno,
-        id
-      };
-      
-      alunos.push(alunoCompleto);
+      alunos.push(aluno);
       await this.saveAlunos(alunos);
-      
-      return alunoCompleto;
+      console.log('✅ Aluno adicionado com sucesso');
     } catch (error) {
-      console.error('Erro ao adicionar aluno:', error);
+      console.error('❌ Erro ao adicionar aluno:', error);
       throw error;
     }
   }
@@ -102,10 +71,13 @@ export class DataService {
         throw new Error(`Aluno com ID ${id} não encontrado`);
       }
       
+      // Atualizar o aluno com os novos dados
       alunos[index] = { ...alunos[index], ...dadosAtualizados };
+      
       await this.saveAlunos(alunos);
+      console.log(`✅ Aluno ${id} atualizado com sucesso`);
     } catch (error) {
-      console.error('Erro ao atualizar aluno:', error);
+      console.error('❌ Erro ao atualizar aluno:', error);
       throw error;
     }
   }
@@ -113,58 +85,61 @@ export class DataService {
   static async removerAluno(id: string): Promise<void> {
     try {
       const alunos = await this.getAlunos();
-      const alunosFiltrados = alunos.filter(aluno => aluno.id !== id);
+      const index = alunos.findIndex(aluno => aluno.id === id);
       
-      if (alunosFiltrados.length === alunos.length) {
+      if (index === -1) {
         throw new Error(`Aluno com ID ${id} não encontrado`);
       }
       
-      await this.saveAlunos(alunosFiltrados);
+      // Remover o aluno do array
+      alunos.splice(index, 1);
+      
+      await this.saveAlunos(alunos);
+      console.log(`✅ Aluno ${id} removido com sucesso`);
     } catch (error) {
-      console.error('Erro ao remover aluno:', error);
+      console.error('❌ Erro ao remover aluno:', error);
       throw error;
     }
   }
 
-  // ========== VÍDEOS ==========
+  // ========== VIDEOS ==========
   static async getVideos(): Promise<Video[]> {
     try {
       const redis = getRedisClient();
       const videosStr = await redis.get(KEYS.VIDEOS);
-      const videos = videosStr ? JSON.parse(videosStr) : [];
+      const videos = videosStr ? JSON.parse(videosStr as string) : [];
       return Array.isArray(videos) ? videos : [];
     } catch (error) {
-      console.error('Erro ao buscar vídeos:', error);
+      console.error('❌ Erro ao buscar vídeos:', error);
       return [];
     }
   }
 
   static async saveVideos(videos: Video[]): Promise<void> {
     try {
-      if (!Array.isArray(videos)) {
-        throw new Error('Dados de vídeos devem ser um array');
-      }
       const redis = getRedisClient();
       await redis.set(KEYS.VIDEOS, JSON.stringify(videos));
       await redis.set(KEYS.LAST_UPDATED, new Date().toISOString());
+      console.log('✅ Vídeos salvos com sucesso');
     } catch (error) {
-      console.error('Erro ao salvar vídeos:', error);
+      console.error('❌ Erro ao salvar vídeos:', error);
       throw error;
     }
   }
 
-  static async adicionarVideo(novoVideo: Video): Promise<void> {
+  static async adicionarVideo(video: Video): Promise<void> {
     try {
       const videos = await this.getVideos();
-      videos.push(novoVideo);
+      videos.push(video);
       await this.saveVideos(videos);
+      console.log('✅ Vídeo adicionado com sucesso');
     } catch (error) {
-      console.error('Erro ao adicionar vídeo:', error);
+      console.error('❌ Erro ao adicionar vídeo:', error);
       throw error;
     }
   }
 
-  static async atualizarVideo(id: number, videoAtualizado: Video): Promise<void> {
+  static async atualizarVideo(id: number, dadosAtualizados: Partial<Video>): Promise<void> {
     try {
       const videos = await this.getVideos();
       const index = videos.findIndex(video => video.id === id);
@@ -173,10 +148,13 @@ export class DataService {
         throw new Error(`Vídeo com ID ${id} não encontrado`);
       }
       
-      videos[index] = videoAtualizado;
+      // Atualizar o vídeo com os novos dados
+      videos[index] = { ...videos[index], ...dadosAtualizados };
+      
       await this.saveVideos(videos);
+      console.log(`✅ Vídeo ${id} atualizado com sucesso`);
     } catch (error) {
-      console.error('Erro ao atualizar vídeo:', error);
+      console.error('❌ Erro ao atualizar vídeo:', error);
       throw error;
     }
   }
@@ -184,82 +162,109 @@ export class DataService {
   static async removerVideo(id: number): Promise<void> {
     try {
       const videos = await this.getVideos();
-      const videosFiltrados = videos.filter(video => video.id !== id);
+      const index = videos.findIndex(video => video.id === id);
       
-      if (videosFiltrados.length === videos.length) {
+      if (index === -1) {
         throw new Error(`Vídeo com ID ${id} não encontrado`);
       }
       
-      await this.saveVideos(videosFiltrados);
+      // Remover o vídeo do array
+      videos.splice(index, 1);
+      
+      await this.saveVideos(videos);
+      console.log(`✅ Vídeo ${id} removido com sucesso`);
     } catch (error) {
-      console.error('Erro ao remover vídeo:', error);
+      console.error('❌ Erro ao remover vídeo:', error);
       throw error;
     }
   }
 
-  // ========== VÍDEOS LIBERADOS ==========
-  static async getVideosLiberados(): Promise<VideosLiberados> {
+  // ========== VIDEOS LIBERADOS ==========
+  static async getVideosLiberados(): Promise<VideosLiberados[]> {
     try {
       const redis = getRedisClient();
-      const videosLiberadosStr = await redis.get(KEYS.VIDEOS_LIBERADOS);
-      const videosLiberados = videosLiberadosStr ? JSON.parse(videosLiberadosStr) : {};
-      return videosLiberados || {};
+      const videosStr = await redis.get(KEYS.VIDEOS_LIBERADOS);
+      const videos = videosStr ? JSON.parse(videosStr as string) : [];
+      return Array.isArray(videos) ? videos : [];
     } catch (error) {
-      console.error('Erro ao buscar vídeos liberados:', error);
-      return {};
+      console.error('❌ Erro ao buscar vídeos liberados:', error);
+      return [];
     }
   }
 
-  static async saveVideosLiberados(videosLiberados: VideosLiberados): Promise<void> {
+  static async saveVideosLiberados(videos: VideosLiberados[]): Promise<void> {
     try {
       const redis = getRedisClient();
-      await redis.set(KEYS.VIDEOS_LIBERADOS, JSON.stringify(videosLiberados));
+      await redis.set(KEYS.VIDEOS_LIBERADOS, JSON.stringify(videos));
       await redis.set(KEYS.LAST_UPDATED, new Date().toISOString());
+      console.log('✅ Vídeos liberados salvos com sucesso');
     } catch (error) {
-      console.error('Erro ao salvar vídeos liberados:', error);
-      throw error;
-    }
-  }
-
-  static async setPermissoesVideosAluno(alunoId: string, videoIds: number[]): Promise<void> {
-    try {
-      const videosLiberados = await this.getVideosLiberados();
-      videosLiberados[alunoId] = videoIds;
-      await this.saveVideosLiberados(videosLiberados);
-    } catch (error) {
-      console.error('Erro ao definir permissões de vídeos:', error);
+      console.error('❌ Erro ao salvar vídeos liberados:', error);
       throw error;
     }
   }
 
   static async liberarVideoParaAluno(alunoId: string, videoId: number): Promise<void> {
     try {
-      const videosLiberados = await this.getVideosLiberados();
+      const alunos = await this.getAlunos();
+      const alunoIndex = alunos.findIndex(aluno => aluno.id === alunoId);
       
-      if (!videosLiberados[alunoId]) {
-        videosLiberados[alunoId] = [];
+      if (alunoIndex === -1) {
+        throw new Error(`Aluno com ID ${alunoId} não encontrado`);
       }
       
-      if (!videosLiberados[alunoId].includes(videoId)) {
-        videosLiberados[alunoId].push(videoId);
-        await this.saveVideosLiberados(videosLiberados);
+      // Adicionar o vídeo aos vídeos liberados se não estiver já liberado
+      if (!alunos[alunoIndex].videosLiberados.includes(videoId)) {
+        alunos[alunoIndex].videosLiberados.push(videoId);
+        await this.saveAlunos(alunos);
       }
+      
+      console.log(`✅ Vídeo ${videoId} liberado para aluno ${alunoId}`);
     } catch (error) {
-      console.error('Erro ao liberar vídeo para aluno:', error);
+      console.error('❌ Erro ao liberar vídeo para aluno:', error);
       throw error;
     }
   }
 
   static async revogarVideoParaAluno(alunoId: string, videoId: number): Promise<void> {
     try {
-      const videosLiberados = await this.getVideosLiberados();
+      const alunos = await this.getAlunos();
+      const alunoIndex = alunos.findIndex(aluno => aluno.id === alunoId);
       
-      if (videosLiberados[alunoId]) {
-        videosLiberados[alunoId] = videosLiberados[alunoId].filter(id => id !== videoId);
-        await this.saveVideosLiberados(videosLiberados);
+      if (alunoIndex === -1) {
+        throw new Error(`Aluno com ID ${alunoId} não encontrado`);
       }
+      
+      // Remover o vídeo dos vídeos liberados
+      const videoIndex = alunos[alunoIndex].videosLiberados.indexOf(videoId);
+      if (videoIndex > -1) {
+        alunos[alunoIndex].videosLiberados.splice(videoIndex, 1);
+        await this.saveAlunos(alunos);
+      }
+      
+      console.log(`✅ Vídeo ${videoId} revogado para aluno ${alunoId}`);
     } catch (error) {
-      console.error('Erro ao revogar vídeo para aluno:', error);
+      console.error('❌ Erro ao revogar vídeo para aluno:', error);
+      throw error;
+    }
+  }
+
+  static async setPermissoesVideosAluno(alunoId: string, videosLiberados: number[]): Promise<void> {
+    try {
+      const alunos = await this.getAlunos();
+      const alunoIndex = alunos.findIndex(aluno => aluno.id === alunoId);
+      
+      if (alunoIndex === -1) {
+        throw new Error(`Aluno com ID ${alunoId} não encontrado`);
+      }
+      
+      // Definir os vídeos liberados para o aluno
+      alunos[alunoIndex].videosLiberados = videosLiberados;
+      await this.saveAlunos(alunos);
+      
+      console.log(`✅ Permissões de vídeos definidas para aluno ${alunoId}`);
+    } catch (error) {
+      console.error('❌ Erro ao definir permissões de vídeos:', error);
       throw error;
     }
   }
@@ -269,9 +274,9 @@ export class DataService {
     try {
       const redis = getRedisClient();
       const lastUpdated = await redis.get(KEYS.LAST_UPDATED);
-      return lastUpdated || new Date().toISOString();
+      return lastUpdated as string || new Date().toISOString();
     } catch (error) {
-      console.error('Erro ao buscar última atualização:', error);
+      console.error('❌ Erro ao buscar última atualização:', error);
       return new Date().toISOString();
     }
   }
