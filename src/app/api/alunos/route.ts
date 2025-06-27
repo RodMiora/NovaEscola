@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import bcrypt from 'bcryptjs';
 import { DataService } from '../../../services/dataService';
 
 export async function GET() {
@@ -23,14 +24,21 @@ export async function POST(request: NextRequest) {
       aluno.id = Date.now().toString() + Math.random().toString(36).substr(2, 9);
     }
     
-    // Adicionar o aluno (método não retorna nada)
+    // Hashear a senha antes de salvar
+    if (aluno.password) {
+      const saltRounds = 10;
+      aluno.password = await bcrypt.hash(aluno.password, saltRounds);
+    }
+    
+    // Adicionar o aluno
     await DataService.adicionarAluno(aluno);
     
-    // Retornar o aluno adicionado com status de sucesso
+    // Retornar o aluno adicionado (sem a senha)
+    const { password, ...alunoSemSenha } = aluno;
     return NextResponse.json({
       success: true,
       message: 'Aluno adicionado com sucesso',
-      aluno: aluno
+      aluno: alunoSemSenha
     }, { status: 201 });
   } catch (error) {
     console.error('Erro ao adicionar aluno:', error);

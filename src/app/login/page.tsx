@@ -25,36 +25,40 @@ export default function LoginPage() {
     setError("");
 
     try {
-      // Verificar credenciais de administrador
+      // Verificar credenciais de admin primeiro
       if ((email === "admin" && password === "123456") ||
           (email === "administrador" && password === "123456789")) {
         localStorage.setItem('isLoggedIn', 'true');
         localStorage.setItem('username', email);
         localStorage.setItem('isAdmin', 'true');
-        router.push('/videos'); // Redireciona para vídeos primeiro
+        router.push('/painel');
         return;
       }
 
-      // Verificar se é um aluno cadastrado
-      const alunosSalvos = localStorage.getItem('alunos');
-      if (alunosSalvos) {
-        const alunos = JSON.parse(alunosSalvos);
-        const aluno = alunos.find(
-          (a: any) => a.login === email && a.password === password
-        );
-        
-        if (aluno) {
-          localStorage.setItem('isLoggedIn', 'true');
-          localStorage.setItem('username', email);
-          localStorage.setItem('isAdmin', 'false');
-          localStorage.setItem('alunoId', aluno.id.toString());
-          router.push('/videos');
-          return;
-        }
+      // Fazer login via API para alunos
+      const response = await fetch('/api/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          login: email,
+          password: password
+        })
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        localStorage.setItem('isLoggedIn', 'true');
+        localStorage.setItem('username', email);
+        localStorage.setItem('isAdmin', 'false');
+        localStorage.setItem('alunoId', data.aluno.id);
+        router.push('/videos');
+      } else {
+        setError(data.error || "Nome de usuário ou senha incorretos");
       }
 
-      // Se chegou aqui, as credenciais são inválidas
-      setError("Nome de usuário ou senha incorretos");
     } catch (error) {
       setError("Erro ao fazer login. Tente novamente.");
       console.error("Erro de login:", error);
