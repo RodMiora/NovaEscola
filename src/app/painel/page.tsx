@@ -35,7 +35,8 @@ interface ConfirmacaoState {
 // Esta lista pode vir do seu useDataSync ou de outro service/fonte
 import { modules as staticModules } from '@/data/modules'; // <--- Exemplo de lista estática
 
-const AdminPage: React.FC = () => {
+// Linha 38 - Mudança de React.FC para função simples
+const AdminPage = () => {
   const router = useRouter();
 
   // --- Estados de Autenticação e Autorização ---
@@ -170,9 +171,8 @@ const AdminPage: React.FC = () => {
   };
 
   const abrirModalEdicao = (aluno: Aluno) => {
-    // Crie uma cópia do aluno para evitar modificar o estado global diretamente
-    // Limpa o campo password para não mostrar o hash
-    setAlunoEmEdicao({...aluno, password: ''});
+    // Manter todos os dados do aluno, incluindo a senha em texto plano
+    setAlunoEmEdicao({...aluno});
     setModalEdicaoAberto(true);
   };
 
@@ -410,9 +410,8 @@ const AdminPage: React.FC = () => {
               type={mostrarSenha ? "text" : "password"}
               name="password"
               id="password"
-              value={alunoEmEdicao.password || ''}
+              value={alunoEmEdicao?.password || ''} // Mostra a senha real
               onChange={handleInputChange}
-              placeholder={modalEdicaoAberto ? "Deixe vazio para manter a senha atual" : ""}
               className="w-full px-3 py-2 pr-10 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-orange-500 focus:border-orange-500"
               required={!modalEdicaoAberto}
             />

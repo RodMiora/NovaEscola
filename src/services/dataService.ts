@@ -158,7 +158,7 @@ export class DataService {
     }
   }
 
-  static async atualizarAluno(id: string, dadosAtualizados: Partial<Aluno>): Promise<void> {
+  static async atualizarAluno(id: string, dadosAtualizados: Partial<Aluno>): Promise<Aluno> {
     try {
       const alunos = await this.getAlunos();
       const index = alunos.findIndex(aluno => aluno.id === id);
@@ -172,6 +172,8 @@ export class DataService {
       
       await this.saveAlunos(alunos);
       console.log(`✅ Aluno ${id} atualizado com sucesso`);
+      
+      return alunos[index]; // Retornar o aluno atualizado
     } catch (error) {
       console.error('❌ Erro ao atualizar aluno:', error);
       throw error;

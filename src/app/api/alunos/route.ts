@@ -15,35 +15,36 @@ export async function GET() {
   }
 }
 
+// Remover as linhas de bcrypt e salvar senha em texto plano
 export async function POST(request: NextRequest) {
   try {
-    const aluno = await request.json();
-    
-    // Garantir que o aluno tenha um ID único
-    if (!aluno.id) {
-      aluno.id = Date.now().toString() + Math.random().toString(36).substr(2, 9);
+    const { name, login, password, email, role, modulo } = await request.json();
+
+    if (!name || !login || !password) {
+      return NextResponse.json(
+        { error: 'Nome, login e senha são obrigatórios' },
+        { status: 400 }
+      );
     }
-    
-    // Hashear a senha antes de salvar
-    if (aluno.password) {
-      const saltRounds = 10;
-      aluno.password = await bcrypt.hash(aluno.password, saltRounds);
-    }
-    
-    // Adicionar o aluno
-    await DataService.adicionarAluno(aluno);
-    
-    // Retornar o aluno adicionado (sem a senha)
-    const { password, ...alunoSemSenha } = aluno;
-    return NextResponse.json({
-      success: true,
-      message: 'Aluno adicionado com sucesso',
-      aluno: alunoSemSenha
-    }, { status: 201 });
+
+    // Não hashear a senha - manter em texto plano
+    const novoAluno = {
+      id: Date.now().toString(),
+      name,
+      login,
+      password, // Senha em texto plano
+      email: email || '',
+      role,
+      modulo: modulo || 1, // Adicionar propriedade modulo obrigatória
+      videosLiberados: []
+    };
+
+    await DataService.adicionarAluno(novoAluno);
+    return NextResponse.json(novoAluno, { status: 201 });
   } catch (error) {
     console.error('Erro ao adicionar aluno:', error);
     return NextResponse.json(
-      { error: 'Erro ao adicionar aluno' },
+      { error: 'Erro interno do servidor' },
       { status: 500 }
     );
   }
