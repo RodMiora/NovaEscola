@@ -16,9 +16,9 @@ function getRedisClient(): ReturnType<typeof createClient> {
       throw new Error('❌ Variáveis KV_REST_API_URL e KV_REST_API_TOKEN são obrigatórias');
     }
     
-    // Configurar cliente Redis para Redis Cloud (configuração TLS corrigida)
+    // Configurar cliente Redis para Redis Cloud com TLS habilitado
     redisClient = createClient({
-      url: process.env.KV_REST_API_URL,
+      url: process.env.KV_REST_API_URL.replace('redis://', 'rediss://'),
       password: process.env.KV_REST_API_TOKEN
     });
     
