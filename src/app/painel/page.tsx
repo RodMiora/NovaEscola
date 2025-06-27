@@ -292,10 +292,16 @@ const AdminPage: React.FC = () => {
 
   // Adicionar após as declarações de estado
   useEffect(() => {
+    console.log("useEffect de sincronização disparado.");
     // Sincronizar o estado temporário sempre que os dados globais mudarem
     if (alunoSelecionadoVideos && modalLiberarVideosAberto) {
       const videosAtuais = videosLiberados[alunoSelecionadoVideos.id] || [];
+      console.log("Sincronizando videosLiberadosTemp com:", videosAtuais);
+      console.log("Aluno selecionado:", alunoSelecionadoVideos.name, "ID:", alunoSelecionadoVideos.id);
+      console.log("Dados completos videosLiberados:", videosLiberados);
       setVideosLiberadosTemp(videosAtuais);
+    } else {
+      console.log("Condições para sincronização não atendidas. alunoSelecionadoVideos:", alunoSelecionadoVideos, "modalLiberarVideosAberto:", modalLiberarVideosAberto);
     }
   }, [videosLiberados, alunoSelecionadoVideos?.id, modalLiberarVideosAberto]);
   
@@ -318,8 +324,30 @@ const AdminPage: React.FC = () => {
 
   // Função para verificar se um vídeo está liberado
   const isVideoLiberado = (videoId: number): boolean => {
-    if (!alunoSelecionadoVideos?.id) return false;
-    return videosLiberadosTemp.includes(videoId);
+    console.log(`Verificando vídeo ID: ${videoId}`);
+    console.log("videosLiberadosTemp atual:", videosLiberadosTemp);
+    console.log("videosLiberados do aluno:", alunoSelecionadoVideos ? videosLiberados[alunoSelecionadoVideos.id] : 'Nenhum aluno selecionado');
+
+    if (!alunoSelecionadoVideos?.id) {
+      console.log("Nenhum aluno selecionado. Retornando false.");
+      return false;
+    }
+
+    // Primeiro verifica o estado temporário (para mudanças não salvas)
+    if (videosLiberadosTemp.includes(videoId)) {
+      console.log(`Vídeo ${videoId} encontrado em videosLiberadosTemp. Retornando true.`);
+      return true;
+    }
+
+    // Depois verifica os dados reais do backend (para dados já salvos)
+    if (videosLiberados[alunoSelecionadoVideos.id]) {
+      const isSaved = videosLiberados[alunoSelecionadoVideos.id].includes(videoId);
+      console.log(`Vídeo ${videoId} encontrado nos dados salvos? ${isSaved}. Retornando ${isSaved}.`);
+      return isSaved;
+    }
+
+    console.log(`Vídeo ${videoId} não encontrado em nenhum lugar. Retornando false.`);
+    return false;
   };
 
   // --- Renderização do Formulário de Aluno (Função Completa) ---
