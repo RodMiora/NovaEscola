@@ -1,9 +1,11 @@
-import { kv } from '@vercel/kv';
+import { createClient } from '@vercel/kv';
 
-// If @vercel/kv is not found, install it using:
-// npm install @vercel/kv
-// or
-// yarn add @vercel/kv
+// Criar cliente KV usando REDIS_URL
+const kv = createClient({
+  url: process.env.REDIS_URL!,
+  token: process.env.REDIS_URL! // Para Vercel KV com REDIS_URL, a URL serve como token também
+});
+
 import { Aluno, Video, VideosLiberados } from '../hooks/types';
 
 // Chaves para o KV store
