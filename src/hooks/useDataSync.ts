@@ -14,8 +14,8 @@ import {
   AlunosDict // Importado, mas não usado no código atual
 } from './types'; // <-- Mantenha './types' se types.ts estiver em src/hooks
 
-// Importa o DataService para usar Vercel KV
-import { DataService } from '../services/dataService';
+// Importa o cliente API em vez do DataService
+import { apiClient } from '../services/apiClient';
 
 // ============================================================================
 // INTERFACE DO RETORNO DO HOOK useDataSync
@@ -42,7 +42,7 @@ interface DataSyncState {
 
   loading: boolean;
   error: string | null;
-  refreshData: () => Promise<void>; // Nova função para forçar atualização
+  loadData: () => Promise<void>; // Renomeado de refreshData para loadData
 }
 
 // ============================================================================
@@ -56,16 +56,16 @@ export function useDataSync(): DataSyncState {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Função para carregar todos os dados do Vercel KV
+  // Função para carregar todos os dados via API
   const loadData = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
       
       const [alunosData, videosData, videosLiberadosData] = await Promise.all([
-        DataService.getAlunos(),
-        DataService.getVideos(),
-        DataService.getVideosLiberados()
+        apiClient.getAlunos(),
+        apiClient.getVideos(),
+        apiClient.getVideosLiberados()
       ]);
       
       setAlunos(alunosData);
@@ -79,175 +79,154 @@ export function useDataSync(): DataSyncState {
     }
   }, []);
 
-  // Função para forçar atualização dos dados
-  const refreshData = useCallback(async () => {
-    await loadData();
-  }, [loadData]);
-
-  // Carrega dados iniciais quando o componente monta
+  // Carregar dados na inicialização
   useEffect(() => {
     loadData();
   }, [loadData]);
 
-  // Migração automática do localStorage para Vercel KV (executar uma vez)
-  useEffect(() => {
-    const migrateData = async () => {
-      try {
-        await DataService.migrateFromLocalStorage();
-      } catch (error) {
-        console.error('Erro na migração:', error);
-      }
-    };
-    
-    migrateData();
-  }, []);
+  // Função para obter vídeos liberados de um aluno específico
+  const getVideosLiberadosDoAluno = useCallback((alunoId: string): number[] => {
+    return videosLiberados[alunoId] || [];
+  }, [videosLiberados]);
 
-  // === FUNÇÕES CRUD E PERMISSÕES ===
-  // Agora todas as funções são async e usam o DataService do Vercel KV
-
-  // ========== ALUNOS ==========
+  // Atualizar todas as funções CRUD para usar apiClient
   const adicionarAluno = useCallback(async (novoAluno: Omit<Aluno, 'id'>) => {
     try {
       setLoading(true);
       setError(null);
       
-      await DataService.adicionarAluno(novoAluno);
-      await refreshData(); // Recarrega os dados após adicionar
+      await apiClient.adicionarAluno(novoAluno);
+      await loadData();
     } catch (err: any) {
       console.error('Erro ao adicionar aluno:', err);
       setError(err.message || 'Erro ao adicionar aluno');
     } finally {
       setLoading(false);
     }
-  }, [refreshData]);
+  }, [loadData]);
 
   const atualizarAluno = useCallback(async (alunoId: string, novosDados: Partial<Aluno>) => {
     try {
       setLoading(true);
       setError(null);
       
-      await DataService.atualizarAluno(alunoId, novosDados);
-      await refreshData(); // Recarrega os dados após atualizar
+      await apiClient.atualizarAluno(alunoId, novosDados);
+      await loadData();
     } catch (err: any) {
       console.error('Erro ao atualizar aluno:', err);
       setError(err.message || 'Erro ao atualizar aluno');
     } finally {
       setLoading(false);
     }
-  }, [refreshData]);
+  }, [loadData]);
 
   const removerAluno = useCallback(async (alunoId: string) => {
     try {
       setLoading(true);
       setError(null);
       
-      await DataService.removerAluno(alunoId);
-      await refreshData(); // Recarrega os dados após remover
+      await apiClient.removerAluno(alunoId);
+      await loadData();
     } catch (err: any) {
       console.error('Erro ao remover aluno:', err);
       setError(err.message || 'Erro ao remover aluno');
     } finally {
       setLoading(false);
     }
-  }, [refreshData]);
+  }, [loadData]);
+
   // ========== VÍDEOS ==========
   const adicionarVideo = useCallback(async (novoVideo: Video) => {
     try {
       setLoading(true);
       setError(null);
       
-      await DataService.adicionarVideo(novoVideo);
-      await refreshData(); // Recarrega os dados após adicionar
+      await apiClient.adicionarVideo(novoVideo);
+      await loadData();
     } catch (err: any) {
       console.error('Erro ao adicionar vídeo:', err);
       setError(err.message || 'Erro ao adicionar vídeo');
     } finally {
       setLoading(false);
     }
-  }, [refreshData]);
+  }, [loadData]);
 
   const atualizarVideo = useCallback(async (videoAtualizado: Video) => {
     try {
       setLoading(true);
       setError(null);
       
-      await DataService.atualizarVideo(videoAtualizado.id, videoAtualizado);
-      await refreshData(); // Recarrega os dados após atualizar
+      await apiClient.atualizarVideo(videoAtualizado.id, videoAtualizado);
+      await loadData();
     } catch (err: any) {
       console.error('Erro ao atualizar vídeo:', err);
       setError(err.message || 'Erro ao atualizar vídeo');
     } finally {
       setLoading(false);
     }
-  }, [refreshData]);
+  }, [loadData]);
 
   const removerVideo = useCallback(async (videoId: number) => {
     try {
       setLoading(true);
       setError(null);
       
-      await DataService.removerVideo(videoId);
-      await refreshData(); // Recarrega os dados após remover
+      await apiClient.removerVideo(videoId);
+      await loadData();
     } catch (err: any) {
       console.error('Erro ao remover vídeo:', err);
       setError(err.message || 'Erro ao remover vídeo');
     } finally {
       setLoading(false);
     }
-  }, [refreshData]);
-  // ========== PERMISSÕES (LIBERAÇÃO DE VÍDEOS POR ALUNO) ==========
-  // Retorna array de videoIds liberados para o aluno
-  const getVideosLiberadosDoAluno = useCallback((alunoId: string): number[] => {
-    return videosLiberados[alunoId] || [];
-  }, [videosLiberados]);
+  }, [loadData]);
 
-  // Marca array de vídeos liberados para esse aluno (overwrite)
+  // ========== PERMISSÕES ==========
   const setPermissoesVideosAluno = useCallback(async (alunoId: string, videoIds: number[]) => {
     try {
       setLoading(true);
       setError(null);
       
-      await DataService.setPermissoesVideosAluno(alunoId, videoIds);
-      await refreshData(); // Recarrega os dados após atualizar
+      await apiClient.setPermissoesVideosAluno(alunoId, videoIds);
+      await loadData();
     } catch (err: any) {
       console.error('Erro ao definir permissões:', err);
       setError(err.message || 'Erro ao definir permissões');
     } finally {
       setLoading(false);
     }
-  }, [refreshData]);
+  }, [loadData]);
 
-  // Libera UM vídeo para UM aluno
   const liberarVideoParaAluno = useCallback(async (alunoId: string, videoId: number) => {
     try {
       setLoading(true);
       setError(null);
       
-      await DataService.liberarVideoParaAluno(alunoId, videoId);
-      await refreshData(); // Recarrega os dados após atualizar
+      await apiClient.liberarVideoParaAluno(alunoId, videoId);
+      await loadData();
     } catch (err: any) {
       console.error('Erro ao liberar vídeo:', err);
       setError(err.message || 'Erro ao liberar vídeo');
     } finally {
       setLoading(false);
     }
-  }, [refreshData]);
+  }, [loadData]);
 
-  // Revoga UM vídeo de UM aluno
   const revogarVideoParaAluno = useCallback(async (alunoId: string, videoId: number) => {
     try {
       setLoading(true);
       setError(null);
       
-      await DataService.revogarVideoParaAluno(alunoId, videoId);
-      await refreshData(); // Recarrega os dados após atualizar
+      await apiClient.revogarVideoParaAluno(alunoId, videoId);
+      await loadData();
     } catch (err: any) {
       console.error('Erro ao revogar vídeo:', err);
       setError(err.message || 'Erro ao revogar vídeo');
     } finally {
       setLoading(false);
     }
-  }, [refreshData]);
+  }, [loadData]);
+
   // =========================
   // === RETORNOS DO HOOK ====
   // =========================
@@ -269,6 +248,6 @@ export function useDataSync(): DataSyncState {
     getVideosLiberadosDoAluno,
     loading,
     error,
-    refreshData, // <-- ADICIONAR esta linha
+    loadData, // Renomeado de refreshData para loadData
   };
 }
