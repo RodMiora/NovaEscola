@@ -326,26 +326,23 @@ const AdminPage: React.FC = () => {
   const isVideoLiberado = (videoId: number): boolean => {
     console.log(`Verificando vídeo ID: ${videoId}`);
     console.log("videosLiberadosTemp atual:", videosLiberadosTemp);
-    console.log("videosLiberados do aluno:", alunoSelecionadoVideos ? videosLiberados[alunoSelecionadoVideos.id] : 'Nenhum aluno selecionado');
+    console.log("alunoSelecionadoVideos.videosLiberados:", alunoSelecionadoVideos?.videosLiberados);
 
-    if (!alunoSelecionadoVideos?.id) {
-      console.log("Nenhum aluno selecionado. Retornando false.");
-      return false;
-    }
-
-    // Primeiro verifica o estado temporário (para mudanças não salvas)
+    // Primeiro verifica o estado temporário (para mudanças não salvas no modal)
     if (videosLiberadosTemp.includes(videoId)) {
       console.log(`Vídeo ${videoId} encontrado em videosLiberadosTemp. Retornando true.`);
       return true;
     }
 
-    // Depois verifica os dados reais do backend (para dados já salvos)
-    if (videosLiberados[alunoSelecionadoVideos.id]) {
-      const isSaved = videosLiberados[alunoSelecionadoVideos.id].includes(videoId);
+    // Depois verifica os dados reais do backend, acessando a propriedade videosLiberados
+    // diretamente no objeto alunoSelecionadoVideos.
+    if (alunoSelecionadoVideos && Array.isArray(alunoSelecionadoVideos.videosLiberados)) {
+      const isSaved = alunoSelecionadoVideos.videosLiberados.includes(videoId);
       console.log(`Vídeo ${videoId} encontrado nos dados salvos? ${isSaved}. Retornando ${isSaved}.`);
       return isSaved;
     }
 
+    // Se não estiver no estado temporário nem nos dados salvos do aluno, está bloqueado.
     console.log(`Vídeo ${videoId} não encontrado em nenhum lugar. Retornando false.`);
     return false;
   };
