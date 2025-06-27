@@ -1,3 +1,4 @@
+// Verificar se o endpoint já trata atualizações parciais corretamente
 import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import { DataService } from '../../../../services/dataService';

@@ -171,7 +171,8 @@ const AdminPage: React.FC = () => {
 
   const abrirModalEdicao = (aluno: Aluno) => {
     // Crie uma cópia do aluno para evitar modificar o estado global diretamente
-    setAlunoEmEdicao({...aluno});
+    // Limpa o campo password para não mostrar o hash
+    setAlunoEmEdicao({...aluno, password: ''});
     setModalEdicaoAberto(true);
   };
 
@@ -240,28 +241,34 @@ const AdminPage: React.FC = () => {
   const handleSalvarEdicaoAluno = async () => {
     if (!alunoEmEdicao || !alunoEmEdicao.id) return;
     
-    // Validação de senha duplicada (excluindo o próprio aluno)
-    const senhaJaExiste = alunos.some(aluno => 
-      aluno.id !== alunoEmEdicao.id && aluno.password === alunoEmEdicao.password
-    );
-    if (senhaJaExiste) {
-      setNotificacao({ type: 'error', message: 'Senha já cadastrada! Por favor, escolha uma senha diferente.' });
-      return;
+    // Validação de senha duplicada apenas se uma nova senha foi fornecida
+    if (alunoEmEdicao.password && alunoEmEdicao.password.trim() !== '') {
+      const senhaJaExiste = alunos.some(aluno => 
+        aluno.id !== alunoEmEdicao.id && aluno.password === alunoEmEdicao.password
+      );
+      if (senhaJaExiste) {
+        setNotificacao({ type: 'error', message: 'Senha já cadastrada! Por favor, escolha uma senha diferente.' });
+        return;
+      }
     }
-    
-    // Não precisamos de loadingData local
-    setError(null); // Limpa erro local antes da ação
+  
+    setError(null);
     try {
-      // Chama a função atualizarAluno do useDataSync
-      // O useDataSync deve lidar com a persistência (Firestore, etc.) e a atualização do estado global
-      await atualizarAluno(alunoEmEdicao.id, alunoEmEdicao); // Assuming atualizarAluno requires id and data
+      // Prepara os dados para envio - só inclui password se foi preenchido
+      const dadosParaAtualizar = { ...alunoEmEdicao };
+      if (!alunoEmEdicao.password || alunoEmEdicao.password.trim() === '') {
+        // Remove o campo password se estiver vazio para manter a senha existente
+        delete dadosParaAtualizar.password;
+      }
+      
+      await atualizarAluno(alunoEmEdicao.id, dadosParaAtualizar);
       setNotificacao({ type: 'success', message: 'Aluno atualizado com sucesso!' });
       fecharModais();
     } catch (err: any) {
       console.error("Erro ao salvar edição do aluno:", err);
-       if (!dataError) {
-         setError(err.message || "Erro ao salvar edição do aluno.");
-         setNotificacao({ type: 'error', message: err.message || "Erro ao salvar edição do aluno." });
+      if (!dataError) {
+        setError(err.message || "Erro ao salvar edição do aluno.");
+        setNotificacao({ type: 'error', message: err.message || "Erro ao salvar edição do aluno." });
       }
     }
   };
@@ -395,7 +402,9 @@ const AdminPage: React.FC = () => {
 
         {/* Campo de senha para todos os alunos */}
         <div>
-          <label htmlFor="password" className="block text-sm font-medium text-gray-400 mb-1">Senha<span className="text-red-500">*</span></label>
+          <label htmlFor="password" className="block text-sm font-medium text-gray-400 mb-1">
+            Senha{modalEdicaoAberto ? '' : <span className="text-red-500">*</span>}
+          </label>
           <div className="relative">
             <input
               type={mostrarSenha ? "text" : "password"}
@@ -403,8 +412,9 @@ const AdminPage: React.FC = () => {
               id="password"
               value={alunoEmEdicao.password || ''}
               onChange={handleInputChange}
+              placeholder={modalEdicaoAberto ? "Deixe vazio para manter a senha atual" : ""}
               className="w-full px-3 py-2 pr-10 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-orange-500 focus:border-orange-500"
-              required
+              required={!modalEdicaoAberto}
             />
             <button
               type="button"
