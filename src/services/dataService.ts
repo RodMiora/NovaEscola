@@ -3,15 +3,20 @@ import { Aluno, Video, VideosLiberados } from '../hooks/types';
 
 // Função para obter a instância do Redis (usando Upstash)
 function getRedisClient(): Redis {
-  console.log('🔍 Verificando variáveis de ambiente Upstash:');
+  console.log('🔍 [getRedisClient] Verificando variáveis de ambiente Upstash:');
   console.log('UPSTASH_REDIS_REST_URL:', process.env.UPSTASH_REDIS_REST_URL ? 'Definida' : 'Não definida');
   console.log('UPSTASH_REDIS_REST_TOKEN:', process.env.UPSTASH_REDIS_REST_TOKEN ? 'Definida' : 'Não definida');
   console.log('NODE_ENV:', process.env.NODE_ENV);
   
+  if (!process.env.UPSTASH_REDIS_REST_URL || !process.env.UPSTASH_REDIS_REST_TOKEN) {
+    console.error('❌ [getRedisClient] Variáveis de ambiente do Upstash não configuradas!');
+    throw new Error('Variáveis de ambiente do Upstash não configuradas');
+  }
+  
   // Criar cliente Redis usando Upstash (API REST)
   const redis = Redis.fromEnv();
   
-  console.log('✅ Cliente Upstash Redis inicializado com sucesso');
+  console.log('✅ [getRedisClient] Cliente Upstash Redis inicializado com sucesso');
   return redis;
 }
 
@@ -27,27 +32,48 @@ export class DataService {
   // ========== ALUNOS ==========
   static async getAlunos(): Promise<Aluno[]> {
     try {
+      console.log('🔍 [getAlunos] Iniciando busca de alunos...');
       const redis = getRedisClient();
+      
+      console.log('🔍 [getAlunos] Buscando chave:', KEYS.ALUNOS);
       const alunosStr = await redis.get(KEYS.ALUNOS);
       
+      console.log('🔍 [getAlunos] Resultado do Redis:', {
+        tipo: typeof alunosStr,
+        valor: alunosStr,
+        tamanho: alunosStr ? String(alunosStr).length : 0
+      });
+      
       if (!alunosStr) {
+        console.log('⚠️ [getAlunos] Nenhum dado encontrado no Redis para chave:', KEYS.ALUNOS);
         return [];
       }
       
       // Garantir que é uma string antes de fazer parse
       const alunosData = typeof alunosStr === 'string' ? alunosStr : String(alunosStr);
+      console.log('🔍 [getAlunos] Dados antes do parse:', alunosData.substring(0, 200) + '...');
+      
       const alunos = JSON.parse(alunosData);
+      console.log('🔍 [getAlunos] Dados após parse:', {
+        tipo: typeof alunos,
+        isArray: Array.isArray(alunos),
+        quantidade: Array.isArray(alunos) ? alunos.length : 'N/A'
+      });
       
       // Garantir que sempre retorna um array válido
-      return Array.isArray(alunos) ? alunos : [];
+      const resultado = Array.isArray(alunos) ? alunos : [];
+      console.log('✅ [getAlunos] Retornando', resultado.length, 'alunos');
+      return resultado;
     } catch (error) {
-      console.error('❌ Erro ao buscar alunos:', error);
+      console.error('❌ [getAlunos] Erro ao buscar alunos:', error);
+      console.error('❌ [getAlunos] Stack trace:', error instanceof Error ? error.stack : 'Stack não disponível');
       return [];
     }
   }
 
   static async saveAlunos(alunos: Aluno[]): Promise<void> {
     try {
+      console.log('🔍 [saveAlunos] Iniciando salvamento de', alunos.length, 'alunos...');
       const redis = getRedisClient();
       
       // Limpar dados não serializáveis antes de salvar
@@ -58,18 +84,35 @@ export class DataService {
       }));
       
       const alunosJson = JSON.stringify(alunosLimpos);
+      console.log('🔍 [saveAlunos] JSON a ser salvo:', {
+        tamanho: alunosJson.length,
+        preview: alunosJson.substring(0, 200) + '...'
+      });
+      
+      console.log('🔍 [saveAlunos] Salvando na chave:', KEYS.ALUNOS);
       await redis.set(KEYS.ALUNOS, alunosJson);
+      
+      // Verificar se foi salvo corretamente
+      const verificacao = await redis.get(KEYS.ALUNOS);
+      console.log('🔍 [saveAlunos] Verificação pós-salvamento:', {
+        salvo: !!verificacao,
+        tamanho: verificacao ? String(verificacao).length : 0
+      });
+      
       await redis.set(KEYS.LAST_UPDATED, new Date().toISOString());
-      console.log('✅ Alunos salvos com sucesso');
+      console.log('✅ [saveAlunos] Alunos salvos com sucesso');
     } catch (error) {
-      console.error('❌ Erro ao salvar alunos:', error);
+      console.error('❌ [saveAlunos] Erro ao salvar alunos:', error);
+      console.error('❌ [saveAlunos] Stack trace:', error instanceof Error ? error.stack : 'Stack não disponível');
       throw error;
     }
   }
 
   static async adicionarAluno(aluno: Aluno): Promise<Aluno> {
     try {
+      console.log('🔍 [adicionarAluno] Iniciando adição do aluno:', aluno.nome || aluno.name);
       const alunos = await this.getAlunos();
+      console.log('🔍 [adicionarAluno] Alunos existentes:', alunos.length);
       
       // Garantir que o aluno tenha propriedades serializáveis
       const alunoLimpo = {
@@ -86,13 +129,18 @@ export class DataService {
         ...(aluno.telefoneResponsavel !== undefined && { telefoneResponsavel: aluno.telefoneResponsavel })
       };
       
+      console.log('🔍 [adicionarAluno] Aluno limpo:', JSON.stringify(alunoLimpo, null, 2));
+      
       alunos.push(alunoLimpo);
+      console.log('🔍 [adicionarAluno] Total de alunos após adição:', alunos.length);
+      
       await this.saveAlunos(alunos);
-      console.log('✅ Aluno adicionado com sucesso');
+      console.log('✅ [adicionarAluno] Aluno adicionado com sucesso');
       
       return alunoLimpo;
     } catch (error) {
-      console.error('❌ Erro ao adicionar aluno:', error);
+      console.error('❌ [adicionarAluno] Erro ao adicionar aluno:', error);
+      console.error('❌ [adicionarAluno] Stack trace:', error instanceof Error ? error.stack : 'Stack não disponível');
       throw error;
     }
   }
