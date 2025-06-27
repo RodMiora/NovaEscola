@@ -17,8 +17,21 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const aluno = await request.json();
-    const novoAluno = await DataService.adicionarAluno(aluno);
-    return NextResponse.json(novoAluno);
+    
+    // Garantir que o aluno tenha um ID único
+    if (!aluno.id) {
+      aluno.id = Date.now().toString() + Math.random().toString(36).substr(2, 9);
+    }
+    
+    // Adicionar o aluno (método não retorna nada)
+    await DataService.adicionarAluno(aluno);
+    
+    // Retornar o aluno adicionado com status de sucesso
+    return NextResponse.json({
+      success: true,
+      message: 'Aluno adicionado com sucesso',
+      aluno: aluno
+    }, { status: 201 });
   } catch (error) {
     console.error('Erro ao adicionar aluno:', error);
     return NextResponse.json(

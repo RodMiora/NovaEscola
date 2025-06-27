@@ -29,7 +29,15 @@ export class DataService {
     try {
       const redis = getRedisClient();
       const alunosStr = await redis.get(KEYS.ALUNOS);
-      const alunos = alunosStr ? JSON.parse(alunosStr as string) : [];
+      
+      if (!alunosStr) {
+        return [];
+      }
+      
+      // Garantir que é uma string antes de fazer parse
+      const alunosData = typeof alunosStr === 'string' ? alunosStr : String(alunosStr);
+      const alunos = JSON.parse(alunosData);
+      
       // Garantir que sempre retorna um array válido
       return Array.isArray(alunos) ? alunos : [];
     } catch (error) {
@@ -41,7 +49,16 @@ export class DataService {
   static async saveAlunos(alunos: Aluno[]): Promise<void> {
     try {
       const redis = getRedisClient();
-      await redis.set(KEYS.ALUNOS, JSON.stringify(alunos));
+      
+      // Limpar dados não serializáveis antes de salvar
+      const alunosLimpos = alunos.map(aluno => ({
+        ...aluno,
+        // Garantir que videosLiberados seja sempre um array
+        videosLiberados: Array.isArray(aluno.videosLiberados) ? aluno.videosLiberados : []
+      }));
+      
+      const alunosJson = JSON.stringify(alunosLimpos);
+      await redis.set(KEYS.ALUNOS, alunosJson);
       await redis.set(KEYS.LAST_UPDATED, new Date().toISOString());
       console.log('✅ Alunos salvos com sucesso');
     } catch (error) {
@@ -50,12 +67,30 @@ export class DataService {
     }
   }
 
-  static async adicionarAluno(aluno: Aluno): Promise<void> {
+  static async adicionarAluno(aluno: Aluno): Promise<Aluno> {
     try {
       const alunos = await this.getAlunos();
-      alunos.push(aluno);
+      
+      // Garantir que o aluno tenha propriedades serializáveis
+      const alunoLimpo = {
+        ...aluno,
+        // Garantir que videosLiberados seja sempre um array
+        videosLiberados: aluno.videosLiberados || [],
+        // Remover propriedades undefined
+        ...(aluno.email !== undefined && { email: aluno.email }),
+        ...(aluno.telefone !== undefined && { telefone: aluno.telefone }),
+        ...(aluno.endereco !== undefined && { endereco: aluno.endereco }),
+        ...(aluno.dataNascimento !== undefined && { dataNascimento: aluno.dataNascimento }),
+        ...(aluno.dataInicioCurso !== undefined && { dataInicioCurso: aluno.dataInicioCurso }),
+        ...(aluno.nomePaiMae !== undefined && { nomePaiMae: aluno.nomePaiMae }),
+        ...(aluno.telefoneResponsavel !== undefined && { telefoneResponsavel: aluno.telefoneResponsavel })
+      };
+      
+      alunos.push(alunoLimpo);
       await this.saveAlunos(alunos);
       console.log('✅ Aluno adicionado com sucesso');
+      
+      return alunoLimpo;
     } catch (error) {
       console.error('❌ Erro ao adicionar aluno:', error);
       throw error;
