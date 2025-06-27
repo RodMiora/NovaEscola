@@ -693,9 +693,9 @@ const AdminPage: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="bg-gray-800 divide-y divide-gray-700">
-                  {alunosFiltrados.map((aluno) => (
+                  {alunosFiltrados.map((aluno, index) => (
                     <tr key={aluno.id}>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">{aluno.sequentialId || aluno.id}</td> {/* Mostra sequentialId se existir */}
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">{String(index + 1).padStart(2, '0')}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-white">{aluno.name}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">{aluno.email}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">{aluno.modulo}</td>
