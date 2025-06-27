@@ -4,19 +4,19 @@ import { DataService } from '../../../services/dataService';
 
 export async function POST(request: NextRequest) {
   try {
-    const { email, password } = await request.json();
+    const { login, password } = await request.json();
 
-    if (!email || !password) {
+    if (!login || !password) {
       return NextResponse.json(
-        { error: 'Email e senha são obrigatórios' },
+        { error: 'Login e senha são obrigatórios' },
         { status: 400 }
       );
     }
 
     const alunos = await DataService.getAlunos();
-    
+
     // Comparação direta de senhas em texto plano
-    const aluno = alunos.find(a => a.login === email && a.password === password);
+    const aluno = alunos.find(a => a.login === login && a.password === password);
     
     if (!aluno) {
       return NextResponse.json(
