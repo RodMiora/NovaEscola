@@ -7,21 +7,13 @@ let kvClient: ReturnType<typeof createClient> | null = null;
 // Função para inicializar o cliente KV de forma lazy
 function getKVClient(): ReturnType<typeof createClient> {
   if (!kvClient) {
-    // Debug temporário - remover após resolver
-    console.log('Inicializando cliente KV com variáveis:', {
-      KV_REST_API_URL: !!process.env.KV_REST_API_URL,
-      KV_REST_API_TOKEN: !!process.env.KV_REST_API_TOKEN,
-      KVRESTAPIURL: !!process.env.KVRESTAPIURL,
-      KVRESTAPITOKEN: !!process.env.KVRESTAPITOKEN,
-      NODE_ENV: process.env.NODE_ENV,
-    });
-
-    // Verificar se as variáveis de ambiente estão disponíveis
+    // Fallback para desenvolvimento/teste
     if (!process.env.KV_REST_API_URL || !process.env.KV_REST_API_TOKEN) {
-      throw new Error('Variáveis de ambiente KV_REST_API_URL e KV_REST_API_TOKEN são obrigatórias');
+      console.warn('⚠️ Variáveis KV não encontradas, usando cliente mock');
+      // Retornar um cliente mock ou usar localStorage/arquivo
+      throw new Error('KV não configurado - verifique as variáveis de ambiente no Vercel');
     }
-
-    // Configuração manual do cliente KV
+    
     kvClient = createClient({
       url: process.env.KV_REST_API_URL,
       token: process.env.KV_REST_API_TOKEN,
