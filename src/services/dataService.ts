@@ -36,29 +36,42 @@ export class DataService {
       const redis = getRedisClient();
       
       console.log('🔍 [getAlunos] Buscando chave:', KEYS.ALUNOS);
-      const alunosStr = await redis.get(KEYS.ALUNOS);
+      const redisResponse = await redis.get(KEYS.ALUNOS);
       
       console.log('🔍 [getAlunos] Resultado do Redis:', {
-        tipo: typeof alunosStr,
-        valor: alunosStr,
-        tamanho: alunosStr ? String(alunosStr).length : 0
+        tipo: typeof redisResponse,
+        valor: redisResponse,
+        temValor: redisResponse && typeof redisResponse === 'object' && 'valor' in redisResponse
       });
       
-      if (!alunosStr) {
+      if (!redisResponse) {
         console.log('⚠️ [getAlunos] Nenhum dado encontrado no Redis para chave:', KEYS.ALUNOS);
         return [];
       }
       
-      // Garantir que é uma string antes de fazer parse
-      const alunosData = typeof alunosStr === 'string' ? alunosStr : String(alunosStr);
-      console.log('🔍 [getAlunos] Dados antes do parse:', alunosData.substring(0, 200) + '...');
-      
-      const alunos = JSON.parse(alunosData);
-      console.log('🔍 [getAlunos] Dados após parse:', {
-        tipo: typeof alunos,
-        isArray: Array.isArray(alunos),
-        quantidade: Array.isArray(alunos) ? alunos.length : 'N/A'
-      });
+      // Acessar diretamente a propriedade 'valor' do objeto retornado pelo Upstash Redis
+      let alunos: any;
+      if (typeof redisResponse === 'object' && redisResponse !== null && 'valor' in redisResponse) {
+        // Upstash Redis retorna { tipo: 'object', valor: [...] }
+        alunos = (redisResponse as any).valor;
+        console.log('🔍 [getAlunos] Dados extraídos da propriedade valor:', {
+          tipo: typeof alunos,
+          isArray: Array.isArray(alunos),
+          quantidade: Array.isArray(alunos) ? alunos.length : 'N/A'
+        });
+      } else if (typeof redisResponse === 'string') {
+        // Fallback para caso seja uma string JSON
+        alunos = JSON.parse(redisResponse);
+        console.log('🔍 [getAlunos] Dados parseados de string JSON:', {
+          tipo: typeof alunos,
+          isArray: Array.isArray(alunos),
+          quantidade: Array.isArray(alunos) ? alunos.length : 'N/A'
+        });
+      } else {
+        // Caso inesperado
+        console.log('⚠️ [getAlunos] Formato inesperado do Redis:', redisResponse);
+        alunos = redisResponse;
+      }
       
       // Garantir que sempre retorna um array válido
       const resultado = Array.isArray(alunos) ? alunos : [];
