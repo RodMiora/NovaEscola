@@ -290,21 +290,29 @@ const AdminPage: React.FC = () => {
     });
   };
 
+  // Adicionar este useEffect após as declarações de estado
+  useEffect(() => {
+    // Sincronizar o estado temporário sempre que os dados globais mudarem
+    // e o modal estiver aberto para um aluno específico
+    if (alunoSelecionadoVideos && modalLiberarVideosAberto) {
+      const videosAtuais = videosLiberados[alunoSelecionadoVideos.id] || [];
+      setVideosLiberadosTemp(videosAtuais);
+    }
+  }, [videosLiberados, alunoSelecionadoVideos?.id, modalLiberarVideosAberto]);
+  
   const handleSaveVideosLiberados = async () => {
     if (!alunoSelecionadoVideos?.id) return;
-    // Não precisamos de loadingData local
-    setError(null); // Limpa erro local antes da ação
+    setError(null);
     try {
-      // Chama a função setPermissoesVideosAluno do useDataSync
-      // O useDataSync deve lidar com a persistência e atualização do estado global
-      await setPermissoesVideosAluno(alunoSelecionadoVideos.id, videosLiberadosTemp); // Assumindo que é assíncrono
+      await setPermissoesVideosAluno(alunoSelecionadoVideos.id, videosLiberadosTemp);
       setNotificacao({ type: 'success', message: `Permissões de vídeo salvas para ${alunoSelecionadoVideos.name}!` });
+      // O useEffect acima vai sincronizar automaticamente o estado quando videosLiberados mudar
       fecharModais();
     } catch (err: any) {
       console.error("Erro ao salvar permissões de vídeo:", err);
-       if (!dataError) {
-         setError(err.message || "Erro ao salvar permissões de vídeo.");
-         setNotificacao({ type: 'error', message: err.message || "Erro ao salvar permissões de vídeo." });
+      if (!dataError) {
+        setError(err.message || "Erro ao salvar permissões de vídeo.");
+        setNotificacao({ type: 'error', message: err.message || "Erro ao salvar permissões de vídeo." });
       }
     }
   };
