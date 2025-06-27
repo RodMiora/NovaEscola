@@ -258,12 +258,22 @@ export default function VideosPage() {
     // }
     
     // Adicionar:
+    // No useEffect onde carrega os dados (linha ~260)
     const loadVideosLiberados = async () => {
       try {
+        console.log('DEBUG: Aluno ID do localStorage:', currentUserId);
         const response = await fetch('/api/videos-liberados');
         if (response.ok) {
           const data = await response.json();
+          console.log('DEBUG: Resposta completa da API /api/videos-liberados:', data);
+          
+          if (currentUserId) {
+            const userIdStr = currentUserId.toString();
+            console.log('DEBUG: Videos Liberados para este aluno (data[alunoId]):', data[userIdStr]);
+          }
+          
           setVideosLiberados(data);
+          console.log('DEBUG: Estado atual de videosLiberados:', data);
         }
       } catch (error) {
         console.error('Erro ao carregar vídeos liberados:', error);
@@ -277,6 +287,12 @@ export default function VideosPage() {
       setYoutubeLinks(JSON.parse(savedLinks));
     }
   }, []);
+
+  // Adicionar useEffect para monitorar mudanças no estado
+  useEffect(() => {
+    console.log('DEBUG: Estado videosLiberados atualizado:', videosLiberados);
+    console.log('DEBUG: currentUserId atual:', currentUserId);
+  }, [videosLiberados, currentUserId]);
 
   useEffect(() => {
     setIsMounted(true);
@@ -376,11 +392,16 @@ export default function VideosPage() {
   };
 
   // Função para verificar se um vídeo está liberado para o usuário atual
+  // Modificar a função isVideoLiberadoParaUsuario (linha ~379)
   const isVideoLiberadoParaUsuario = (videoId: number) => {
     if (isAdmin) return true;
     if (currentUserId) {
       const userIdStr = currentUserId.toString();
-      return videosLiberados[userIdStr]?.includes(videoId) || false;
+      const isLiberado = videosLiberados[userIdStr]?.includes(videoId) || false;
+      console.log(`DEBUG: Video ID: ${videoId}, Título: [verificar na tela], Está Liberado (includes): ${isLiberado}`);
+      console.log(`DEBUG: currentUserId: ${currentUserId}, userIdStr: ${userIdStr}`);
+      console.log(`DEBUG: videosLiberados[userIdStr]:`, videosLiberados[userIdStr]);
+      return isLiberado;
     }
     return false;
   };
