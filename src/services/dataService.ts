@@ -1,11 +1,7 @@
-import { createClient } from '@vercel/kv';
+import { kv } from '@vercel/kv';
 
-// Criar cliente KV usando REDIS_URL
-const kv = createClient({
-  url: process.env.REDIS_URL!,
-  token: process.env.REDIS_URL! // Para Vercel KV com REDIS_URL, a URL serve como token também
-});
-
+// Remove a configuração manual do createClient
+// O kv importado automaticamente usa KV_REST_API_URL e KV_REST_API_TOKEN
 import { Aluno, Video, VideosLiberados } from '../hooks/types';
 
 // Chaves para o KV store
@@ -21,15 +17,21 @@ export class DataService {
   static async getAlunos(): Promise<Aluno[]> {
     try {
       const alunos = await kv.get<Aluno[]>(KEYS.ALUNOS);
-      return alunos || [];
+      // Garantir que sempre retorna um array válido
+      return Array.isArray(alunos) ? alunos : [];
     } catch (error) {
       console.error('Erro ao buscar alunos:', error);
+      // Retornar array vazio em caso de erro
       return [];
     }
   }
 
   static async saveAlunos(alunos: Aluno[]): Promise<void> {
     try {
+      // Validar que é um array antes de salvar
+      if (!Array.isArray(alunos)) {
+        throw new Error('Dados de alunos devem ser um array');
+      }
       await kv.set(KEYS.ALUNOS, alunos);
       await kv.set(KEYS.LAST_UPDATED, Date.now());
     } catch (error) {
@@ -94,7 +96,8 @@ export class DataService {
   static async getVideos(): Promise<Video[]> {
     try {
       const videos = await kv.get<Video[]>(KEYS.VIDEOS);
-      return videos || [];
+      // Garantir que sempre retorna um array válido
+      return Array.isArray(videos) ? videos : [];
     } catch (error) {
       console.error('Erro ao buscar vídeos:', error);
       return [];
@@ -103,6 +106,10 @@ export class DataService {
 
   static async saveVideos(videos: Video[]): Promise<void> {
     try {
+      // Validar que é um array antes de salvar
+      if (!Array.isArray(videos)) {
+        throw new Error('Dados de vídeos devem ser um array');
+      }
       await kv.set(KEYS.VIDEOS, videos);
       await kv.set(KEYS.LAST_UPDATED, Date.now());
     } catch (error) {
@@ -166,7 +173,10 @@ export class DataService {
   static async getVideosLiberados(): Promise<VideosLiberados> {
     try {
       const videosLiberados = await kv.get<VideosLiberados>(KEYS.VIDEOS_LIBERADOS);
-      return videosLiberados || {};
+      // Garantir que sempre retorna um objeto válido
+      return videosLiberados && typeof videosLiberados === 'object' && !Array.isArray(videosLiberados) 
+        ? videosLiberados 
+        : {};
     } catch (error) {
       console.error('Erro ao buscar vídeos liberados:', error);
       return {};
@@ -175,6 +185,10 @@ export class DataService {
 
   static async saveVideosLiberados(videosLiberados: VideosLiberados): Promise<void> {
     try {
+      // Validar que é um objeto antes de salvar
+      if (!videosLiberados || typeof videosLiberados !== 'object' || Array.isArray(videosLiberados)) {
+        throw new Error('Dados de vídeos liberados devem ser um objeto');
+      }
       await kv.set(KEYS.VIDEOS_LIBERADOS, videosLiberados);
       await kv.set(KEYS.LAST_UPDATED, Date.now());
     } catch (error) {
