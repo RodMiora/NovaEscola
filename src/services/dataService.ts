@@ -278,15 +278,19 @@ export class DataService {
   }
 
   // ========== VIDEOS LIBERADOS ==========
-  static async getVideosLiberados(): Promise<VideosLiberados[]> {
+  static async getVideosLiberados(): Promise<VideosLiberados> {
     try {
-      const redis = getRedisClient();
-      const videosStr = await redis.get(KEYS.VIDEOS_LIBERADOS);
-      const videos = videosStr ? JSON.parse(videosStr as string) : [];
-      return Array.isArray(videos) ? videos : [];
+      const alunos = await this.getAlunos();
+      const videosLiberados: VideosLiberados = {};
+      
+      alunos.forEach(aluno => {
+        videosLiberados[aluno.id] = aluno.videosLiberados || [];
+      });
+      
+      return videosLiberados;
     } catch (error) {
       console.error('❌ Erro ao buscar vídeos liberados:', error);
-      return [];
+      return {};
     }
   }
 

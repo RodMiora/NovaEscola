@@ -251,10 +251,27 @@ export default function VideosPage() {
       }
     };
     checkAdmin();
-    const savedVideosLiberados = localStorage.getItem('videosLiberados');
-    if (savedVideosLiberados) {
-      setVideosLiberados(JSON.parse(savedVideosLiberados));
-    }
+    // Remover estas linhas:
+    // const savedVideosLiberados = localStorage.getItem('videosLiberados');
+    // if (savedVideosLiberados) {
+    //   setVideosLiberados(JSON.parse(savedVideosLiberados));
+    // }
+    
+    // Adicionar:
+    const loadVideosLiberados = async () => {
+      try {
+        const response = await fetch('/api/videos-liberados');
+        if (response.ok) {
+          const data = await response.json();
+          setVideosLiberados(data);
+        }
+      } catch (error) {
+        console.error('Erro ao carregar vídeos liberados:', error);
+      }
+    };
+    
+    // Chamar a função no useEffect
+    loadVideosLiberados();
     const savedLinks = localStorage.getItem('youtubeLinks');
     if (savedLinks) {
       setYoutubeLinks(JSON.parse(savedLinks));
