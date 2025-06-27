@@ -40,7 +40,7 @@ export default function LoginPage() {
       if (alunosSalvos) {
         const alunos = JSON.parse(alunosSalvos);
         const aluno = alunos.find(
-          (a: any) => a.login === email && (a.password === password || a.senha === password)
+          (a: any) => a.login === email && a.password === password
         );
         
         if (aluno) {
