@@ -294,6 +294,7 @@ export default function VideosPage() {
   };
 
   useEffect(() => {
+    console.log('🚀 useEffect INICIOU - página carregada!');
     const checkAdmin = () => {
       const username = localStorage.getItem('username');
       console.log('=== DEBUG checkAdmin ===');
@@ -329,7 +330,9 @@ export default function VideosPage() {
               
               if (currentUserData) {
                 console.log('✅ Usuário encontrado! Definindo currentUserId para:', currentUserData.id);
+                console.log('🔍 ANTES setCurrentUserId - currentUserId atual:', currentUserId);
                 setCurrentUserId(currentUserData.id);
+                console.log('🔍 DEPOIS setCurrentUserId - chamada executada');
                 setCurrentUser(currentUserData.nome);
               } else {
                 console.log('❌ ERRO: Usuário não encontrado no array de alunos');
@@ -363,7 +366,10 @@ export default function VideosPage() {
   }, []);
 
   // useEffect separado para carregar vídeos liberados
+  // useEffect separado para carregar vídeos liberados
   useEffect(() => {
+    console.log('🔍 useEffect carregamento EXECUTOU - currentUserId:', currentUserId);
+    console.log('🔍 Tipo de currentUserId:', typeof currentUserId);
     if (currentUserId) {
       const loadVideosLiberados = async () => {
         try {
@@ -399,34 +405,34 @@ export default function VideosPage() {
     }
   }, [currentUserId]);
 
-  // Função para verificar se um vídeo está liberado para o usuário atual
-  // Corrigir a linha 388 e 398 - o problema é que videosLiberados pode estar undefined
-  const isVideoLiberadoParaUsuario = (videoId: number): boolean => {
-  // Log específico para o vídeo 101
-  if (videoId === 101) {
-    console.log('🔍 DEBUG VÍDEO 101:');
-    console.log('- currentUserId:', currentUserId);
-    console.log('- videosLiberados array:', videosLiberados);
-    console.log('- videosLiberados.length:', videosLiberados.length);
-    console.log('- videosLiberados.includes(101):', videosLiberados.includes(101));
-    console.log('- typeof videoId:', typeof videoId);
-    console.log('- videoId === 101:', videoId === 101);
-  }
-  
-  if (!currentUserId) {
-    console.log(`❌ Usuário não identificado para vídeo ${videoId}`);
-    return false;
-  }
-  
-  // Agora videosLiberados é sempre um array
-  const liberado = videosLiberados.includes(videoId);
-  console.log(`🔐 Vídeo ${videoId} liberado:`, liberado);
-  return liberado;
-  };
+    // Função para verificar se um vídeo está liberado para o usuário atual
+    // Corrigir a linha 388 e 398 - o problema é que videosLiberados pode estar undefined
+    const isVideoLiberadoParaUsuario = (videoId: number): boolean => {
+    // Log específico para o vídeo 101
+    if (videoId === 101) {
+      console.log('🔍 DEBUG VÍDEO 101:');
+      console.log('- currentUserId:', currentUserId);
+      console.log('- videosLiberados array:', videosLiberados);
+      console.log('- videosLiberados.length:', videosLiberados.length);
+      console.log('- videosLiberados.includes(101):', videosLiberados.includes(101));
+      console.log('- typeof videoId:', typeof videoId);
+      console.log('- videoId === 101:', videoId === 101);
+    }
+    
+    if (!currentUserId) {
+      console.log(`❌ Usuário não identificado para vídeo ${videoId}`);
+      return false;
+    }
+    
+    // Agora videosLiberados é sempre um array
+    const liberado = videosLiberados.includes(videoId);
+    console.log(`🔐 Vídeo ${videoId} liberado:`, liberado);
+    return liberado;
+    };
 
-  return (
-    <div className="min-h-screen bg-gray-900 flex flex-col">
-
+    return (
+      <div className="min-h-screen bg-gray-900 flex flex-col">
+    
       {/* TOAST DE FEEDBACK */}
       {notificacao && (
         <div className={`fixed top-20 right-10 z-40 py-2 px-6 rounded-lg shadow-lg animate-fade-in
@@ -434,7 +440,7 @@ export default function VideosPage() {
           {notificacao.texto}
         </div>
       )}
-
+    
       {/* Estilos CSS para o mini equalizador */}
       <style jsx>{`
         @keyframes bar1 {
