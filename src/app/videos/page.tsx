@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef } from "react";
 import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
-import './animations.css'; // Import the animations CSS file
+import './animations.css';
 
 // Carregue o Equalizer apenas no lado do cliente
 const Equalizer = dynamic(
@@ -295,31 +295,45 @@ export default function VideosPage() {
   useEffect(() => {
     const checkAdmin = () => {
       const username = localStorage.getItem('username');
+      console.log('=== DEBUG checkAdmin ===');
+      console.log('Username do localStorage:', username);
       
       const isAdminUser = username === 'administrador';
       setIsAdmin(isAdminUser);
       setCurrentUser(username);
+      console.log('isAdmin definido como:', isAdminUser);
       
       if (username && username !== 'administrador') {
         const savedAlunos = localStorage.getItem('alunos');
+        console.log('Alunos salvos no localStorage:', savedAlunos);
         
         if (savedAlunos) {
           try {
             const alunos = JSON.parse(savedAlunos);
+            console.log('Array de alunos parseado:', alunos);
             
             if (Array.isArray(alunos)) {
               const currentUserData = alunos.find((a: any) => a.login === username);
+              console.log('Dados do usuário encontrado:', currentUserData);
               
               if (currentUserData) {
+                console.log('Definindo currentUserId para:', currentUserData.id);
                 setCurrentUserId(currentUserData.id);
                 setCurrentUser(currentUserData.nome);
+              } else {
+                console.log('ERRO: Usuário não encontrado no array de alunos');
               }
+            } else {
+              console.log('ERRO: alunos não é um array');
             }
           } catch (error) {
-            console.error('Erro ao fazer parse dos alunos:', error);
+            console.log('ERRO ao fazer parse dos alunos:', error);
           }
+        } else {
+          console.log('ERRO: Não há alunos salvos no localStorage');
         }
       }
+      console.log('=== FIM DEBUG checkAdmin ===');
     };
     
     checkAdmin();
@@ -337,17 +351,28 @@ export default function VideosPage() {
     if (currentUserId) {
       const loadVideosLiberados = async () => {
         try {
+          console.log('=== DEBUG loadVideosLiberados ===');
+          console.log('Carregando vídeos liberados para usuário ID:', currentUserId);
           const response = await fetch('/api/videos-liberados');
           if (response.ok) {
             const data = await response.json();
+            console.log('Resposta da API videos-liberados:', data);
+            console.log('Tipo de data:', typeof data);
+            console.log('Keys de data:', Object.keys(data));
             setVideosLiberados(data);
+            console.log('videosLiberados state atualizado');
+          } else {
+            console.log('Erro na resposta da API:', response.status, response.statusText);
           }
+          console.log('=== FIM DEBUG loadVideosLiberados ===');
         } catch (error) {
           console.error('Erro ao carregar vídeos liberados:', error);
         }
       };
       
       loadVideosLiberados();
+    } else {
+      console.log('currentUserId é null, não carregando vídeos liberados');
     }
   }, [currentUserId]);
 
@@ -359,9 +384,23 @@ export default function VideosPage() {
     
     if (currentUserId) {
       const userIdStr = currentUserId.toString();
-      return videosLiberados[userIdStr]?.includes(videoId) || false;
+      const isLiberado = videosLiberados[userIdStr]?.includes(videoId) || false;
+      
+      // Log específico apenas para o vídeo 101 para debug
+      if (videoId === 101) {
+        console.log(`=== DEBUG Video 101 ===`);
+        console.log('currentUserId:', currentUserId);
+        console.log('userIdStr:', userIdStr);
+        console.log('videosLiberados completo:', videosLiberados);
+        console.log('videosLiberados[userIdStr]:', videosLiberados[userIdStr]);
+        console.log('isLiberado:', isLiberado);
+        console.log('=== FIM DEBUG Video 101 ===');
+      }
+      
+      return isLiberado;
     }
     
+    console.log('currentUserId é null, retornando false para vídeo', videoId);
     return false;
   };
 
