@@ -251,42 +251,38 @@ export default function VideosPage() {
       }
     };
     checkAdmin();
-    // Remover estas linhas:
-    // const savedVideosLiberados = localStorage.getItem('videosLiberados');
-    // if (savedVideosLiberados) {
-    //   setVideosLiberados(JSON.parse(savedVideosLiberados));
-    // }
     
-    // Adicionar:
-    // No useEffect onde carrega os dados (linha ~260)
-    const loadVideosLiberados = async () => {
-      try {
-        console.log('DEBUG: Aluno ID do localStorage:', currentUserId);
-        const response = await fetch('/api/videos-liberados');
-        if (response.ok) {
-          const data = await response.json();
-          console.log('DEBUG: Resposta completa da API /api/videos-liberados:', data);
-          
-          if (currentUserId) {
-            const userIdStr = currentUserId.toString();
-            console.log('DEBUG: Videos Liberados para este aluno (data[alunoId]):', data[userIdStr]);
-          }
-          
-          setVideosLiberados(data);
-          console.log('DEBUG: Estado atual de videosLiberados:', data);
-        }
-      } catch (error) {
-        console.error('Erro ao carregar vídeos liberados:', error);
-      }
-    };
-    
-    // Chamar a função no useEffect
-    loadVideosLiberados();
     const savedLinks = localStorage.getItem('youtubeLinks');
     if (savedLinks) {
       setYoutubeLinks(JSON.parse(savedLinks));
     }
   }, []);
+
+  // Novo useEffect separado que depende do currentUserId
+  useEffect(() => {
+    if (currentUserId) {
+      const loadVideosLiberados = async () => {
+        try {
+          console.log('DEBUG: Aluno ID do localStorage:', currentUserId);
+          const response = await fetch('/api/videos-liberados');
+          if (response.ok) {
+            const data = await response.json();
+            console.log('DEBUG: Resposta completa da API /api/videos-liberados:', data);
+            
+            const userIdStr = currentUserId.toString();
+            console.log('DEBUG: Videos Liberados para este aluno (data[alunoId]):', data[userIdStr]);
+            
+            setVideosLiberados(data);
+            console.log('DEBUG: Estado atual de videosLiberados:', data);
+          }
+        } catch (error) {
+          console.error('Erro ao carregar vídeos liberados:', error);
+        }
+      };
+      
+      loadVideosLiberados();
+    }
+  }, [currentUserId]); // Dependência do currentUserId
 
   // Adicionar useEffect para monitorar mudanças no estado
   useEffect(() => {
