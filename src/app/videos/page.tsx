@@ -332,8 +332,10 @@ export default function VideosPage() {
                   if (response.ok) {
                     const data = await response.json();
                     console.log('✅ Vídeos liberados carregados:', data);
-                    if (data.videosLiberados && Array.isArray(data.videosLiberados)) {
-                      setVideosLiberados(data.videosLiberados);
+                    // CORREÇÃO NECESSÁRIA: Trocar data.videosLiberados por data[currentUserData.id]
+                    const videosDoUsuario = data[currentUserData.id] || [];
+                    if (Array.isArray(videosDoUsuario)) {
+                      setVideosLiberados(videosDoUsuario);
                     } else {
                       setVideosLiberados([]);
                     }
