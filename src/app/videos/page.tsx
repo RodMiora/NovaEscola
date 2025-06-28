@@ -393,17 +393,38 @@ export default function VideosPage() {
   };
 
   // Função para verificar se um vídeo está liberado para o usuário atual
-  // Modificar a função isVideoLiberadoParaUsuario (linha ~379)
   const isVideoLiberadoParaUsuario = (videoId: number) => {
-    if (isAdmin) return true;
+    console.log('=== DEBUG isVideoLiberadoParaUsuario ===');
+    console.log('videoId:', videoId);
+    console.log('isAdmin:', isAdmin);
+    console.log('currentUserId:', currentUserId);
+    
+    if (isAdmin) {
+      console.log('Usuário é admin, liberando vídeo');
+      return true;
+    }
+    
     if (currentUserId) {
       const userIdStr = currentUserId.toString();
+      console.log('userIdStr:', userIdStr);
+      console.log('videosLiberados completo:', videosLiberados);
+      console.log('videosLiberados[userIdStr]:', videosLiberados[userIdStr]);
+      
+      // Verificar se existe a chave do usuário
+      if (!videosLiberados[userIdStr]) {
+        console.log('ERRO: Não encontrou dados para o usuário', userIdStr);
+        console.log('Chaves disponíveis em videosLiberados:', Object.keys(videosLiberados));
+        return false;
+      }
+      
       const isLiberado = videosLiberados[userIdStr]?.includes(videoId) || false;
-      console.log(`DEBUG: Video ID: ${videoId}, Título: [verificar na tela], Está Liberado (includes): ${isLiberado}`);
-      console.log(`DEBUG: currentUserId: ${currentUserId}, userIdStr: ${userIdStr}`);
-      console.log(`DEBUG: videosLiberados[userIdStr]:`, videosLiberados[userIdStr]);
+      console.log(`Vídeo ${videoId} está liberado:`, isLiberado);
+      console.log('=== FIM DEBUG ===');
       return isLiberado;
     }
+    
+    console.log('currentUserId é null, negando acesso');
+    console.log('=== FIM DEBUG ===');
     return false;
   };
 
