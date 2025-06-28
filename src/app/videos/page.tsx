@@ -215,7 +215,8 @@ const initialModules = [
 
 export default function VideosPage() {
   const router = useRouter();
-  const carouselRefs = useRef<{[key: number]: HTMLDivElement | null}>({});
+  
+  // Estados únicos (removendo duplicações)
   const [isMounted, setIsMounted] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [currentUser, setCurrentUser] = useState<string | null>(null);
@@ -231,12 +232,69 @@ export default function VideosPage() {
   const [modulesList, setModulesList] = useState<Module[]>(initialModules);
   const staticBars = [0.6, 0.8, 0.7, 0.9, 0.6];
   const [miniBars, setMiniBars] = useState<number[]>(staticBars);
+  
+  const carouselRefs = useRef<{[key: number]: HTMLDivElement | null}>({});
+
+  // Funções que estavam faltando
+  const handleMouseMove = (moduleId: number, e: React.MouseEvent) => {
+    const container = carouselRefs.current[moduleId];
+    if (!container) return;
+    
+    const rect = container.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const containerWidth = rect.width;
+    
+    setShowLeftArrow(prev => ({ ...prev, [moduleId]: x < containerWidth * 0.2 && container.scrollLeft > 0 }));
+    setShowRightArrow(prev => ({ ...prev, [moduleId]: x > containerWidth * 0.8 && container.scrollLeft < container.scrollWidth - container.clientWidth }));
+  };
+
+  const handleMouseLeave = (moduleId: number) => {
+    setShowLeftArrow(prev => ({ ...prev, [moduleId]: false }));
+    setShowRightArrow(prev => ({ ...prev, [moduleId]: false }));
+  };
+
+  const scrollCarousel = (moduleId: number, direction: 'left' | 'right') => {
+    const container = carouselRefs.current[moduleId];
+    if (!container) return;
+    
+    const scrollAmount = 300;
+    const newScrollLeft = direction === 'left' 
+      ? container.scrollLeft - scrollAmount 
+      : container.scrollLeft + scrollAmount;
+    
+    container.scrollTo({ left: newScrollLeft, behavior: 'smooth' });
+  };
+
+  const abrirVideoYoutube = (videoId: number) => {
+    const link = youtubeLinks[videoId];
+    if (link) {
+      window.open(link, '_blank');
+    }
+  };
+
+  const abrirModalYoutube = (e: React.MouseEvent, video: Video) => {
+    e.stopPropagation();
+    setVideoSelecionado({ ...video, youtubeLink: youtubeLinks[video.id] || '' });
+    setMostrarModalYoutube(true);
+  };
+
+  const salvarLinkYoutube = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!videoSelecionado) return;
+    
+    const novosLinks = { ...youtubeLinks, [videoSelecionado.id]: videoSelecionado.youtubeLink || '' };
+    setYoutubeLinks(novosLinks);
+    localStorage.setItem('youtubeLinks', JSON.stringify(novosLinks));
+    
+    setNotificacao({ tipo: 'sucesso', texto: 'Link do YouTube salvo com sucesso!' });
+    setMostrarModalYoutube(false);
+    
+    setTimeout(() => setNotificacao(null), 3000);
+  };
 
   useEffect(() => {
     const checkAdmin = () => {
       const username = localStorage.getItem('username');
-      console.log('=== DEBUG checkAdmin ===');
-      console.log('DEBUG: Username do localStorage:', username);
       
       const isAdminUser = username === 'administrador';
       setIsAdmin(isAdminUser);
@@ -244,41 +302,24 @@ export default function VideosPage() {
       
       if (username && username !== 'administrador') {
         const savedAlunos = localStorage.getItem('alunos');
-        console.log('DEBUG: Alunos salvos no localStorage (string):', savedAlunos);
         
         if (savedAlunos) {
           try {
             const alunos = JSON.parse(savedAlunos);
-            console.log('DEBUG: Array de alunos parseado:', alunos);
-            console.log('DEBUG: Tipo do array alunos:', typeof alunos);
-            console.log('DEBUG: É array?', Array.isArray(alunos));
             
             if (Array.isArray(alunos)) {
-              console.log('DEBUG: Procurando por login:', username);
-              const currentUserData = alunos.find((a: any) => {
-                console.log('DEBUG: Comparando', a.login, 'com', username);
-                return a.login === username;
-              });
-              console.log('DEBUG: Dados do usuário atual encontrado:', currentUserData);
+              const currentUserData = alunos.find((a: any) => a.login === username);
               
               if (currentUserData) {
-                console.log('DEBUG: Definindo currentUserId para:', currentUserData.id);
                 setCurrentUserId(currentUserData.id);
                 setCurrentUser(currentUserData.nome);
-              } else {
-                console.log('ERRO: Usuário não encontrado no array de alunos');
               }
-            } else {
-              console.log('ERRO: alunos não é um array');
             }
           } catch (error) {
-            console.log('ERRO ao fazer parse dos alunos:', error);
+            console.error('Erro ao fazer parse dos alunos:', error);
           }
-        } else {
-          console.log('ERRO: Não há alunos salvos no localStorage');
         }
       }
-      console.log('=== FIM DEBUG checkAdmin ===');
     };
     
     checkAdmin();
@@ -287,6 +328,8 @@ export default function VideosPage() {
     if (savedLinks) {
       setYoutubeLinks(JSON.parse(savedLinks));
     }
+    
+    setIsMounted(true);
   }, []);
 
   // Novo useEffect separado que depende do currentUserId
@@ -294,17 +337,10 @@ export default function VideosPage() {
     if (currentUserId) {
       const loadVideosLiberados = async () => {
         try {
-          console.log('DEBUG: Aluno ID do localStorage:', currentUserId);
           const response = await fetch('/api/videos-liberados');
           if (response.ok) {
             const data = await response.json();
-            console.log('DEBUG: Resposta completa da API /api/videos-liberados:', data);
-            
-            const userIdStr = currentUserId.toString();
-            console.log('DEBUG: Videos Liberados para este aluno (data[alunoId]):', data[userIdStr]);
-            
             setVideosLiberados(data);
-            console.log('DEBUG: Estado atual de videosLiberados:', data);
           }
         } catch (error) {
           console.error('Erro ao carregar vídeos liberados:', error);
@@ -313,144 +349,19 @@ export default function VideosPage() {
       
       loadVideosLiberados();
     }
-  }, [currentUserId]); // Dependência do currentUserId
-
-  // Adicionar useEffect para monitorar mudanças no estado
-  useEffect(() => {
-    console.log('DEBUG: Estado videosLiberados atualizado:', videosLiberados);
-    console.log('DEBUG: currentUserId atual:', currentUserId);
-  }, [videosLiberados, currentUserId]);
-
-  useEffect(() => {
-    setIsMounted(true);
-    if (typeof window !== 'undefined') {
-      const interval = setInterval(() => {
-        setMiniBars(prev => prev.map(() =>
-          Math.abs(Math.sin(Date.now() / 100 + Math.random() * 10)) * 0.8 + 0.2
-        ));
-      }, 150);
-      return () => clearInterval(interval);
-    }
-  }, []);
-
-  const scrollCarousel = (moduleId: number, direction: 'left' | 'right') => {
-    const carouselRef = carouselRefs.current[moduleId];
-    if (carouselRef) {
-      const scrollAmount = 280;
-      const currentScroll = carouselRef.scrollLeft;
-      carouselRef.scrollTo({
-        left: direction === 'right'
-          ? currentScroll + scrollAmount
-          : currentScroll - scrollAmount,
-        behavior: 'smooth'
-      });
-    }
-  };
-
-  const handleMouseMove = (moduleId: number, event: React.MouseEvent<HTMLDivElement>) => {
-    const carouselRef = carouselRefs.current[moduleId];
-    if (!carouselRef) return;
-    const container = event.currentTarget;
-    const mouseX = event.clientX - container.getBoundingClientRect().left;
-    const containerWidth = container.offsetWidth;
-    const hasMoreRight = carouselRef.scrollWidth > carouselRef.offsetWidth + carouselRef.scrollLeft;
-    const hasMoreLeft = carouselRef.scrollLeft > 0;
-    setShowRightArrow(prev => ({
-      ...prev,
-      [moduleId]: mouseX > containerWidth - 100 && hasMoreRight
-    }));
-    setShowLeftArrow(prev => ({
-      ...prev,
-      [moduleId]: mouseX < 100 && hasMoreLeft
-    }));
-  };
-  const handleMouseLeave = (moduleId: number) => {
-    setShowLeftArrow(prev => ({...prev, [moduleId]: false}));
-    setShowRightArrow(prev => ({...prev, [moduleId]: false}));
-  };
-
-  // Função para abrir o modal de adicionar link do YouTube
-  const abrirModalYoutube = (e: React.MouseEvent, video: any) => {
-    e.stopPropagation();
-    setVideoSelecionado({
-      ...video,
-      youtubeLink: youtubeLinks[video.id] || ''
-    });
-    setMostrarModalYoutube(true);
-  };
-
-  // Função para validar o link do YouTube
-  function validarYoutubeURL(url: string) {
-    return /^https:\/\/(www\.)?youtube\.com\/watch\?v=/.test(url) || /^https:\/\/youtu\.be\//.test(url);
-  }
-
-  // Função para salvar o link do YouTube — agora com validação
-  const salvarLinkYoutube = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (videoSelecionado && videoSelecionado.youtubeLink) {
-      // VALIDAÇÃO:
-      if (!validarYoutubeURL(videoSelecionado.youtubeLink)) {
-        setNotificacao({tipo:"erro", texto:"Insira um link válido do YouTube!"});
-        setTimeout(() => setNotificacao(null), 2700);
-        return;
-      }
-      const novosLinks = {
-        ...youtubeLinks,
-        [videoSelecionado.id]: videoSelecionado.youtubeLink
-      };
-      setYoutubeLinks(novosLinks);
-      localStorage.setItem('youtubeLinks', JSON.stringify(novosLinks));
-      setMostrarModalYoutube(false);
-      setNotificacao({tipo:"sucesso", texto:"Link salvo com sucesso!"});
-      setTimeout(() => setNotificacao(null), 2400);
-    }
-  };
-
-  // Função para abrir o vídeo do YouTube
-  const abrirVideoYoutube = (videoId: number) => {
-    if (!isVideoLiberadoParaUsuario(videoId) && !isAdmin) {
-      alert('Este vídeo não está liberado para você.');
-      return;
-    }
-    const link = youtubeLinks[videoId];
-    if (link) {
-      window.open(link, '_blank');
-    }
-  };
+  }, [currentUserId]);
 
   // Função para verificar se um vídeo está liberado para o usuário atual
   const isVideoLiberadoParaUsuario = (videoId: number) => {
-    console.log('=== DEBUG isVideoLiberadoParaUsuario ===');
-    console.log('videoId:', videoId);
-    console.log('isAdmin:', isAdmin);
-    console.log('currentUserId:', currentUserId);
-    
     if (isAdmin) {
-      console.log('Usuário é admin, liberando vídeo');
       return true;
     }
     
     if (currentUserId) {
       const userIdStr = currentUserId.toString();
-      console.log('userIdStr:', userIdStr);
-      console.log('videosLiberados completo:', videosLiberados);
-      console.log('videosLiberados[userIdStr]:', videosLiberados[userIdStr]);
-      
-      // Verificar se existe a chave do usuário
-      if (!videosLiberados[userIdStr]) {
-        console.log('ERRO: Não encontrou dados para o usuário', userIdStr);
-        console.log('Chaves disponíveis em videosLiberados:', Object.keys(videosLiberados));
-        return false;
-      }
-      
-      const isLiberado = videosLiberados[userIdStr]?.includes(videoId) || false;
-      console.log(`Vídeo ${videoId} está liberado:`, isLiberado);
-      console.log('=== FIM DEBUG ===');
-      return isLiberado;
+      return videosLiberados[userIdStr]?.includes(videoId) || false;
     }
     
-    console.log('currentUserId é null, negando acesso');
-    console.log('=== FIM DEBUG ===');
     return false;
   };
 
@@ -656,11 +567,10 @@ export default function VideosPage() {
                         >
                           {isVideoLiberadoParaUsuario(video.id) || isAdmin ? (
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h1m4 0h1m-6 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
                           ) : (
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                             </svg>
                           )}
