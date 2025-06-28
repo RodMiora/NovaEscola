@@ -235,15 +235,20 @@ export default function VideosPage() {
   useEffect(() => {
     const checkAdmin = () => {
       const username = localStorage.getItem('username');
+      console.log('DEBUG: Username do localStorage:', username);
       const isAdminUser = username === 'administrador';
       setIsAdmin(isAdminUser);
       setCurrentUser(username);
       if (username && username !== 'administrador') {
         const savedAlunos = localStorage.getItem('alunos');
+        console.log('DEBUG: Alunos salvos no localStorage:', savedAlunos);
         if (savedAlunos) {
           const alunos = JSON.parse(savedAlunos);
+          console.log('DEBUG: Array de alunos parseado:', alunos);
           const currentUserData = alunos.find((a: any) => a.login === username);
+          console.log('DEBUG: Dados do usuário atual encontrado:', currentUserData);
           if (currentUserData) {
+            console.log('DEBUG: Definindo currentUserId para:', currentUserData.id);
             setCurrentUserId(currentUserData.id);
             setCurrentUser(currentUserData.nome);
           }
