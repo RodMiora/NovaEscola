@@ -235,26 +235,52 @@ export default function VideosPage() {
   useEffect(() => {
     const checkAdmin = () => {
       const username = localStorage.getItem('username');
+      console.log('=== DEBUG checkAdmin ===');
       console.log('DEBUG: Username do localStorage:', username);
+      
       const isAdminUser = username === 'administrador';
       setIsAdmin(isAdminUser);
       setCurrentUser(username);
+      
       if (username && username !== 'administrador') {
         const savedAlunos = localStorage.getItem('alunos');
-        console.log('DEBUG: Alunos salvos no localStorage:', savedAlunos);
+        console.log('DEBUG: Alunos salvos no localStorage (string):', savedAlunos);
+        
         if (savedAlunos) {
-          const alunos = JSON.parse(savedAlunos);
-          console.log('DEBUG: Array de alunos parseado:', alunos);
-          const currentUserData = alunos.find((a: any) => a.login === username);
-          console.log('DEBUG: Dados do usuário atual encontrado:', currentUserData);
-          if (currentUserData) {
-            console.log('DEBUG: Definindo currentUserId para:', currentUserData.id);
-            setCurrentUserId(currentUserData.id);
-            setCurrentUser(currentUserData.nome);
+          try {
+            const alunos = JSON.parse(savedAlunos);
+            console.log('DEBUG: Array de alunos parseado:', alunos);
+            console.log('DEBUG: Tipo do array alunos:', typeof alunos);
+            console.log('DEBUG: É array?', Array.isArray(alunos));
+            
+            if (Array.isArray(alunos)) {
+              console.log('DEBUG: Procurando por login:', username);
+              const currentUserData = alunos.find((a: any) => {
+                console.log('DEBUG: Comparando', a.login, 'com', username);
+                return a.login === username;
+              });
+              console.log('DEBUG: Dados do usuário atual encontrado:', currentUserData);
+              
+              if (currentUserData) {
+                console.log('DEBUG: Definindo currentUserId para:', currentUserData.id);
+                setCurrentUserId(currentUserData.id);
+                setCurrentUser(currentUserData.nome);
+              } else {
+                console.log('ERRO: Usuário não encontrado no array de alunos');
+              }
+            } else {
+              console.log('ERRO: alunos não é um array');
+            }
+          } catch (error) {
+            console.log('ERRO ao fazer parse dos alunos:', error);
           }
+        } else {
+          console.log('ERRO: Não há alunos salvos no localStorage');
         }
       }
+      console.log('=== FIM DEBUG checkAdmin ===');
     };
+    
     checkAdmin();
     
     const savedLinks = localStorage.getItem('youtubeLinks');
