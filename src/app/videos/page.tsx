@@ -306,57 +306,44 @@ export default function VideosPage() {
       console.log('isAdmin definido como:', isAdminUser);
       
       if (username && username !== 'administrador') {
-        console.log('✅ Usuário não é admin, buscando dados do aluno...');
-        const savedAlunos = localStorage.getItem('alunos');
-        console.log('Alunos salvos no localStorage:', savedAlunos);
+        console.log('✅ Usuário não é admin, buscando alunoId...');
+        const alunoId = localStorage.getItem('alunoId');
+        console.log('AlunoId do localStorage:', alunoId);
         
-        if (savedAlunos) {
+        if (alunoId) {
+          console.log('✅ AlunoId encontrado! Definindo currentUserId para:', alunoId);
+          setCurrentUserId(parseInt(alunoId)); // Converter para number
+          
+          // 🔥 CARREGAR VÍDEOS IMEDIATAMENTE AQUI
+          console.log('🔄 Carregando vídeos liberados imediatamente...');
           try {
-            const alunos = JSON.parse(savedAlunos);
-            console.log('Array de alunos parseado:', alunos);
-            
-            if (Array.isArray(alunos)) {
-              console.log('🔍 Procurando usuário com login:', username);
-              const currentUserData = alunos.find((a: any) => a.login === username);
-              console.log('Dados do usuário encontrado:', currentUserData);
-              
-              if (currentUserData) {
-                console.log('✅ Usuário encontrado! Definindo currentUserId para:', currentUserData.id);
-                setCurrentUserId(currentUserData.id);
-                setCurrentUser(currentUserData.nome);
-                
-                // 🔥 CARREGAR VÍDEOS IMEDIATAMENTE AQUI
-                console.log('🔄 Carregando vídeos liberados imediatamente...');
-                try {
-                  const response = await fetch(`/api/videos-liberados?userId=${currentUserData.id}`);
-                  if (response.ok) {
-                    const data = await response.json();
-                    console.log('✅ Vídeos liberados carregados:', data);
-                    // CORREÇÃO NECESSÁRIA: Trocar data.videosLiberados por data[currentUserData.id]
-                    const videosDoUsuario = data[currentUserData.id] || [];
-                    if (Array.isArray(videosDoUsuario)) {
-                      setVideosLiberados(videosDoUsuario);
-                    } else {
-                      setVideosLiberados([]);
-                    }
-                  } else {
-                    console.log('❌ Erro na API:', response.status);
-                  }
-                } catch (error) {
-                  console.error('❌ Erro ao carregar vídeos:', error);
-                }
+            const response = await fetch(`/api/videos-liberados?userId=${alunoId}`);
+            if (response.ok) {
+              const data = await response.json();
+              console.log('✅ Vídeos liberados carregados:', data);
+              const videosDoUsuario = data[alunoId] || [];
+              if (Array.isArray(videosDoUsuario)) {
+                setVideosLiberados(videosDoUsuario);
+                console.log('✅ VideosLiberados definido:', videosDoUsuario);
+              } else {
+                setVideosLiberados([]);
+                console.log('⚠️ VideosDoUsuario não é array, definindo como vazio');
               }
+            } else {
+              console.log('❌ Erro na API:', response.status);
             }
           } catch (error) {
-            console.log('❌ ERRO ao fazer parse dos alunos:', error);
+            console.error('❌ Erro ao carregar vídeos:', error);
           }
+        } else {
+          console.log('❌ AlunoId não encontrado no localStorage');
         }
       }
-      console.log('=== FIM DEBUG checkAdmin ===');
     };
     
     checkAdmin();
     
+    // Carregar links do YouTube salvos
     const savedLinks = localStorage.getItem('youtubeLinks');
     if (savedLinks) {
       setYoutubeLinks(JSON.parse(savedLinks));
@@ -365,25 +352,8 @@ export default function VideosPage() {
     setIsMounted(true);
   }, []);
 
-  // REMOVER o useEffect separado de carregamento (linhas 369-402)
-  // useEffect separado para carregar vídeos liberados
-  // useEffect separado para carregar vídeos liberados
-  // REMOVER ESTAS LINHAS (369-402):
-  // useEffect(() => {
-  //   console.log('🔍 useEffect carregamento EXECUTOU - currentUserId:', currentUserId);
-  //   if (currentUserId) {
-  //     const loadVideosLiberados = async () => {
-  //       // ... todo o código de carregamento
-  //     };
-  //     loadVideosLiberados();
-  //   } else {
-  //     console.log('currentUserId é null, não carregando vídeos liberados');
-  //   }
-  // }, [currentUserId]);
-
-    // Função para verificar se um vídeo está liberado para o usuário atual
-    // Corrigir a linha 388 e 398 - o problema é que videosLiberados pode estar undefined
-    const isVideoLiberadoParaUsuario = (videoId: number): boolean => {
+  // Função para verificar se um vídeo está liberado para o usuário atual
+  const isVideoLiberadoParaUsuario = (videoId: number): boolean => {
     // Log específico para o vídeo 101
     if (videoId === 101) {
       console.log('🔍 DEBUG VÍDEO 101:');
@@ -404,7 +374,7 @@ export default function VideosPage() {
     const liberado = videosLiberados.includes(videoId);
     console.log(`🔐 Vídeo ${videoId} liberado:`, liberado);
     return liberado;
-    };
+  };
 
     return (
       <div className="min-h-screen bg-gray-900 flex flex-col">
