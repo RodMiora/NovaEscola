@@ -298,6 +298,9 @@ export default function VideosPage() {
       const username = localStorage.getItem('username');
       console.log('=== DEBUG checkAdmin ===');
       console.log('Username do localStorage:', username);
+      console.log('Username é null?', username === null);
+      console.log('Username é undefined?', username === undefined);
+      console.log('Username é string vazia?', username === '');
       
       const isAdminUser = username === 'administrador';
       setIsAdmin(isAdminUser);
@@ -305,34 +308,46 @@ export default function VideosPage() {
       console.log('isAdmin definido como:', isAdminUser);
       
       if (username && username !== 'administrador') {
+        console.log('✅ Usuário não é admin, buscando dados do aluno...');
         const savedAlunos = localStorage.getItem('alunos');
         console.log('Alunos salvos no localStorage:', savedAlunos);
+        console.log('savedAlunos é null?', savedAlunos === null);
         
         if (savedAlunos) {
           try {
             const alunos = JSON.parse(savedAlunos);
             console.log('Array de alunos parseado:', alunos);
+            console.log('Tipo de alunos:', typeof alunos);
+            console.log('alunos é array?', Array.isArray(alunos));
             
             if (Array.isArray(alunos)) {
+              console.log('🔍 Procurando usuário com login:', username);
+              console.log('Lista de logins disponíveis:', alunos.map(a => a.login));
+              
               const currentUserData = alunos.find((a: any) => a.login === username);
               console.log('Dados do usuário encontrado:', currentUserData);
               
               if (currentUserData) {
-                console.log('Definindo currentUserId para:', currentUserData.id);
+                console.log('✅ Usuário encontrado! Definindo currentUserId para:', currentUserData.id);
                 setCurrentUserId(currentUserData.id);
                 setCurrentUser(currentUserData.nome);
               } else {
-                console.log('ERRO: Usuário não encontrado no array de alunos');
+                console.log('❌ ERRO: Usuário não encontrado no array de alunos');
+                console.log('Username procurado:', username);
+                console.log('Logins disponíveis:', alunos.map(a => `"${a.login}"`));
               }
             } else {
-              console.log('ERRO: alunos não é um array');
+              console.log('❌ ERRO: alunos não é um array, tipo:', typeof alunos);
             }
           } catch (error) {
-            console.log('ERRO ao fazer parse dos alunos:', error);
+            console.log('❌ ERRO ao fazer parse dos alunos:', error);
           }
         } else {
-          console.log('ERRO: Não há alunos salvos no localStorage');
+          console.log('❌ ERRO: Não há alunos salvos no localStorage');
         }
+      } else {
+        console.log('❌ Username é null, undefined, vazio ou é administrador');
+        console.log('Condições: username existe?', !!username, 'não é admin?', username !== 'administrador');
       }
       console.log('=== FIM DEBUG checkAdmin ===');
     };
