@@ -315,28 +315,11 @@ export default function VideosPage() {
           setCurrentUserId(parseInt(alunoId)); // Converter para number
           
           // 🔥 CARREGAR VÍDEOS IMEDIATAMENTE AQUI
-          console.log('🔄 Carregando vídeos liberados imediatamente...');
-          try {
-            const response = await fetch(`/api/videos-liberados?userId=${alunoId}`);
-            if (response.ok) {
-              const data = await response.json();
-              console.log('✅ Vídeos liberados carregados:', data);
-              const videosDoUsuario = data[alunoId] || [];
-              if (Array.isArray(videosDoUsuario)) {
-                setVideosLiberados(videosDoUsuario);
-                console.log('✅ VideosLiberados definido:', videosDoUsuario);
-              } else {
-                setVideosLiberados([]);
-                console.log('⚠️ VideosDoUsuario não é array, definindo como vazio');
-              }
-            } else {
-              console.log('❌ Erro na API:', response.status);
-            }
-          } catch (error) {
-            console.error('❌ Erro ao carregar vídeos:', error);
-          }
-        } else {
-          console.log('❌ AlunoId não encontrado no localStorage');
+          // Remover estes logs do useEffect:
+          // console.log('🔄 Carregando vídeos liberados imediatamente...');
+          // console.log('✅ Vídeos liberados carregados:', data);
+          // console.log('✅ VideosLiberados definido:', videosDoUsuario);
+          // console.log('⚠️ VideosDoUsuario não é array, definindo como vazio')
         }
       }
     };
@@ -354,26 +337,11 @@ export default function VideosPage() {
 
   // Função para verificar se um vídeo está liberado para o usuário atual
   const isVideoLiberadoParaUsuario = (videoId: number): boolean => {
-    // Log específico para o vídeo 101
-    if (videoId === 101) {
-      console.log('🔍 DEBUG VÍDEO 101:');
-      console.log('- currentUserId:', currentUserId);
-      console.log('- videosLiberados array:', videosLiberados);
-      console.log('- videosLiberados.length:', videosLiberados.length);
-      console.log('- videosLiberados.includes(101):', videosLiberados.includes(101));
-      console.log('- typeof videoId:', typeof videoId);
-      console.log('- videoId === 101:', videoId === 101);
-    }
-    
     if (!currentUserId) {
-      console.log(`❌ Usuário não identificado para vídeo ${videoId}`);
       return false;
     }
     
-    // Agora videosLiberados é sempre um array
-    const liberado = videosLiberados.includes(videoId);
-    console.log(`🔐 Vídeo ${videoId} liberado:`, liberado);
-    return liberado;
+    return videosLiberados.includes(videoId);
   };
 
     return (

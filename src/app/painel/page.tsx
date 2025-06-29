@@ -195,11 +195,25 @@ const AdminPage = () => {
   };
 
   const handleVideoCheckboxChange = (videoId: number) => {
+    console.log('🔍 CHECKBOX DEBUG:', {
+      videoId,
+      estadoAtual: videosLiberadosTemp,
+      jaLiberado: videosLiberadosTemp.includes(videoId),
+      modalAberto: modalLiberarVideosAberto
+    });
+    
     setVideosLiberadosTemp(prev => {
       const isSelected = prev.includes(videoId);
-      return isSelected
+      const newState = isSelected
         ? prev.filter(id => id !== videoId)
         : [...prev, videoId];
+      
+      console.log('✅ CHECKBOX RESULTADO:', {
+        acao: isSelected ? 'REMOVIDO' : 'ADICIONADO',
+        novoEstado: newState
+      });
+      
+      return newState;
     });
   };
 
@@ -297,18 +311,11 @@ const AdminPage = () => {
     });
   };
 
-  // Adicionar após as declarações de estado
+  // Sincronizar o estado temporário sempre que os dados globais mudarem
   useEffect(() => {
-    console.log("useEffect de sincronização disparado.");
-    // Sincronizar o estado temporário sempre que os dados globais mudarem
     if (alunoSelecionadoVideos && modalLiberarVideosAberto) {
       const videosAtuais = videosLiberados[alunoSelecionadoVideos.id] || [];
-      console.log("Sincronizando videosLiberadosTemp com:", videosAtuais);
-      console.log("Aluno selecionado:", alunoSelecionadoVideos.name, "ID:", alunoSelecionadoVideos.id);
-      console.log("Dados completos videosLiberados:", videosLiberados);
       setVideosLiberadosTemp(videosAtuais);
-    } else {
-      console.log("Condições para sincronização não atendidas. alunoSelecionadoVideos:", alunoSelecionadoVideos, "modalLiberarVideosAberto:", modalLiberarVideosAberto);
     }
   }, [videosLiberados, alunoSelecionadoVideos?.id, modalLiberarVideosAberto]);
   
@@ -331,26 +338,17 @@ const AdminPage = () => {
 
   // Função para verificar se um vídeo está liberado
   const isVideoLiberado = (videoId: number): boolean => {
-    console.log(`Verificando vídeo ID: ${videoId}`);
-    console.log("videosLiberadosTemp atual:", videosLiberadosTemp);
-    console.log("alunoSelecionadoVideos.videosLiberados:", alunoSelecionadoVideos?.videosLiberados);
-
     // Primeiro verifica o estado temporário (para mudanças não salvas no modal)
     if (videosLiberadosTemp.includes(videoId)) {
-      console.log(`Vídeo ${videoId} encontrado em videosLiberadosTemp. Retornando true.`);
       return true;
     }
-
-    // Depois verifica os dados reais do backend, acessando a propriedade videosLiberados
-    // diretamente no objeto alunoSelecionadoVideos.
+  
+    // Depois verifica os dados reais do backend
     if (alunoSelecionadoVideos && Array.isArray(alunoSelecionadoVideos.videosLiberados)) {
       const isSaved = alunoSelecionadoVideos.videosLiberados.includes(videoId);
-      console.log(`Vídeo ${videoId} encontrado nos dados salvos? ${isSaved}. Retornando ${isSaved}.`);
       return isSaved;
     }
-
-    // Se não estiver no estado temporário nem nos dados salvos do aluno, está bloqueado.
-    console.log(`Vídeo ${videoId} não encontrado em nenhum lugar. Retornando false.`);
+  
     return false;
   };
 
@@ -893,17 +891,21 @@ const AdminPage = () => {
                         <div className="flex items-center space-x-3">
                           {/* Checkbox Personalizado - VERSÃO CORRIGIDA */}
                           <div
-                            onClick={() => handleVideoCheckboxChange(video.id)}
-                            className={`w-4 h-4 border-2 rounded cursor-pointer flex items-center justify-center ${
+                            onClick={() => {
+                                console.log('🖱️ CLICK DETECTADO:', video.id);
+                                handleVideoCheckboxChange(video.id);
+                            }}
+                            className={`w-5 h-5 border-2 rounded cursor-pointer flex items-center justify-center transition-all duration-200 ${
                                 isVideoLiberado(video.id)
-                                ? 'bg-blue-600 border-blue-600'
-                                : 'bg-white border-gray-400'
+                                ? 'bg-orange-500 border-orange-500'
+                                : 'border-gray-400 hover:border-orange-400'
                             }`}
-                          >
+                            style={{ pointerEvents: 'auto' }}
+                            >
                             {isVideoLiberado(video.id) && (
-                              <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
-                                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                              </svg>
+                                <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                </svg>
                             )}
                           </div>
                           {/* Título e Duração do Vídeo */}
