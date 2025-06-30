@@ -76,7 +76,7 @@ class ApiClient {
   async setPermissoesVideosAluno(alunoId: string, videoIds: number[]): Promise<void> {
     await this.request('/api/videos-liberados', {
       method: 'POST',
-      body: JSON.stringify({ alunoId, videoIds }),
+      body: JSON.stringify({ alunoId, videosLiberados: videoIds }),
     });
   }
 
