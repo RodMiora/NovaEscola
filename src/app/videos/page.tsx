@@ -314,14 +314,32 @@ export default function VideosPage() {
           console.log('✅ AlunoId encontrado! Definindo currentUserId para:', alunoId);
           setCurrentUserId(parseInt(alunoId)); // Converter para number
           
-          // 🔥 CARREGAR VÍDEOS IMEDIATAMENTE AQUI
-          // Remover estes logs do useEffect:
-          // console.log('🔄 Carregando vídeos liberados imediatamente...');
-          // console.log('✅ Vídeos liberados carregados:', data);
-          // console.log('✅ VideosLiberados definido:', videosDoUsuario);
-          // console.log('⚠️ VideosDoUsuario não é array, definindo como vazio')
+          // 🔥 CARREGAR VÍDEOS LIBERADOS IMEDIATAMENTE AQUI
+          console.log('🔄 Carregando vídeos liberados imediatamente...');
+          try {
+            const response = await fetch(`/api/videos-liberados?userId=${alunoId}`);
+            if (response.ok) {
+              const data = await response.json();
+              console.log('✅ Vídeos liberados carregados:', data);
+              const videosDoUsuario = data[alunoId] || [];
+              if (Array.isArray(videosDoUsuario)) {
+                setVideosLiberados(videosDoUsuario);
+                console.log('✅ VideosLiberados definido:', videosDoUsuario);
+              } else {
+                setVideosLiberados([]);
+                console.log('⚠️ VideosDoUsuario não é array, definindo como vazio');
+              }
+            } else {
+              console.log('❌ Erro na API:', response.status);
+            }
+          } catch (error) {
+            console.error('❌ Erro ao carregar vídeos:', error);
+          }
+        } else {
+          console.log('❌ AlunoId não encontrado no localStorage');
         }
       }
+      console.log('=== FIM DEBUG checkAdmin ===');
     };
     
     checkAdmin();
