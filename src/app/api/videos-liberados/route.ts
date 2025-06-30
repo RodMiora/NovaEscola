@@ -17,7 +17,6 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const { alunoId, videoIds } = await request.json();
-    // Correção: usar setPermissoesVideosAluno para sincronização completa
     await ServerDataService.setPermissoesVideosAluno(alunoId, videoIds);
     return NextResponse.json({ success: true });
   } catch (error) {

@@ -31,7 +31,19 @@ export class PersistenceService {
     dadosSalvos: boolean;
     ultimaAtualizacao: string | null;
   }> {
-    const redisDisponivel = !!(process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN);
+    let redisDisponivel = false;
+    
+    // Verifica o status do Redis através da API
+    try {
+      const response = await fetch('/api/redis-status');
+      if (response.ok) {
+        const data = await response.json();
+        redisDisponivel = data.configured;
+      }
+    } catch (error) {
+      console.error('Erro ao verificar status do Redis:', error);
+    }
+    
     const localStorageDisponivel = typeof window !== 'undefined' && !!window.localStorage;
     
     let dadosSalvos = false;
