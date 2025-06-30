@@ -178,6 +178,13 @@ const AdminPage = () => {
   };
 
   const abrirModalLiberarVideos = (aluno: Aluno) => {
+    console.log('📂 [Painel] Abrindo modal para aluno:', {
+      alunoId: aluno.id,
+      alunoNome: aluno.name,
+      videosLiberadosDoAluno: videosLiberados[aluno.id] || [],
+      todosVideosLiberados: videosLiberados
+    });
+    
     setAlunoSelecionadoVideos(aluno);
     // Carrega as permissões atuais do aluno para o estado temporário do modal
     // Use o ID do aluno para buscar as permissões no objeto videosLiberados
@@ -316,6 +323,11 @@ const AdminPage = () => {
   useEffect(() => {
     if (alunoSelecionadoVideos && modalLiberarVideosAberto) {
       const videosAtuais = videosLiberados[alunoSelecionadoVideos.id] || [];
+      console.log('🔄 [Painel] Sincronizando estado temporário:', {
+        alunoId: alunoSelecionadoVideos.id,
+        videosAtuais,
+        estadoAnterior: videosLiberadosTemp
+      });
       setVideosLiberadosTemp(videosAtuais);
     }
   }, [videosLiberados, alunoSelecionadoVideos?.id, modalLiberarVideosAberto]);
@@ -324,12 +336,24 @@ const AdminPage = () => {
     if (!alunoSelecionadoVideos?.id) return;
     setError(null);
     try {
+      console.log('💾 [Painel] Iniciando salvamento:', {
+        alunoId: alunoSelecionadoVideos.id,
+        alunoNome: alunoSelecionadoVideos.name,
+        videosTemp: videosLiberadosTemp,
+        videosAtuais: videosLiberados[alunoSelecionadoVideos.id] || []
+      });
+      
       await setPermissoesVideosAluno(alunoSelecionadoVideos.id, videosLiberadosTemp);
+      
+      console.log('✅ [Painel] Salvamento concluído, dados atualizados:', {
+        videosLiberadosGlobal: videosLiberados[alunoSelecionadoVideos.id] || []
+      });
+      
       setNotificacao({ type: 'success', message: `Permissões de vídeo salvas para ${alunoSelecionadoVideos.name}!` });
       // O useEffect acima vai sincronizar automaticamente o estado quando videosLiberados mudar
       fecharModais();
     } catch (err: any) {
-      console.error("Erro ao salvar permissões de vídeo:", err);
+      console.error("❌ [Painel] Erro ao salvar permissões de vídeo:", err);
       if (!dataError) {
         setError(err.message || "Erro ao salvar permissões de vídeo.");
         setNotificacao({ type: 'error', message: err.message || "Erro ao salvar permissões de vídeo." });

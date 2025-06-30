@@ -187,10 +187,18 @@ export function useDataSync(): DataSyncState {
       setLoading(true);
       setError(null);
       
+      console.log('🎯 [useDataSync] Salvando permissões:', { alunoId, videoIds });
       await apiClient.setPermissoesVideosAluno(alunoId, videoIds);
+      
+      // Aguardar um pouco para garantir que os dados foram persistidos
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      console.log('🔄 [useDataSync] Recarregando dados após salvamento...');
       await loadData();
+      
+      console.log('✅ [useDataSync] Dados recarregados com sucesso');
     } catch (err: any) {
-      console.error('Erro ao definir permissões:', err);
+      console.error('❌ [useDataSync] Erro ao definir permissões:', err);
       setError(err.message || 'Erro ao definir permissões');
     } finally {
       setLoading(false);
