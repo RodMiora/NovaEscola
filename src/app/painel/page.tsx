@@ -356,9 +356,9 @@ const AdminPage = () => {
   const renderAlunoForm = useCallback(() => {
     if (!alunoEmEdicao) return null;
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="space-y-4">
         {/* Nome Completo */}
-        <div className="col-span-1 md:col-span-2">
+        <div>
           <label htmlFor="name" className="block text-sm font-medium text-gray-400 mb-1">Nome Completo<span className="text-red-500">*</span></label>
           <input
             type="text"
@@ -366,93 +366,97 @@ const AdminPage = () => {
             id="name"
             value={alunoEmEdicao.name}
             onChange={handleInputChange}
-            className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-orange-500 focus:border-orange-500"
+            className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-orange-500 focus:border-orange-500 text-sm sm:text-base"
             required
           />
         </div>
 
-        {/* Email e Login na mesma linha */}
-        <div>
-          <label htmlFor="email" className="block text-sm font-medium text-gray-400 mb-1">Email</label>
-          <input
-            type="email"
-            name="email"
-            id="email"
-            value={alunoEmEdicao.email}
-            onChange={handleInputChange}
-            className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-orange-500 focus:border-orange-500"
-          />
-        </div>
-
-        <div>
-          <label htmlFor="login" className="block text-sm font-medium text-gray-400 mb-1">Login<span className="text-red-500">*</span></label>
-          <input
-            type="text"
-            name="login"
-            id="login"
-            value={alunoEmEdicao.login}
-            onChange={handleInputChange}
-            className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-orange-500 focus:border-orange-500"
-            required
-          />
-        </div>
-
-        {/* Campo de senha para todos os alunos */}
-        <div>
-          <label htmlFor="password" className="block text-sm font-medium text-gray-400 mb-1">
-            Senha{modalEdicaoAberto ? '' : <span className="text-red-500">*</span>}
-          </label>
-          <div className="relative">
+        {/* Email e Login - Grid responsivo */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label htmlFor="email" className="block text-sm font-medium text-gray-400 mb-1">Email</label>
             <input
-              type={mostrarSenha ? "text" : "password"}
-              name="password"
-              id="password"
-              value={alunoEmEdicao?.password || ''} // Mostra a senha real
+              type="email"
+              name="email"
+              id="email"
+              value={alunoEmEdicao.email}
               onChange={handleInputChange}
-              className="w-full px-3 py-2 pr-10 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-orange-500 focus:border-orange-500"
-              required={!modalEdicaoAberto}
+              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-orange-500 focus:border-orange-500 text-sm sm:text-base"
             />
-            <button
-              type="button"
-              onClick={() => setMostrarSenha(!mostrarSenha)}
-              className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-white transition-colors"
-            >
-              {mostrarSenha ? (
-                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21" />
-                </svg>
-              ) : (
-                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                </svg>
-              )}
-            </button>
+          </div>
+
+          <div>
+            <label htmlFor="login" className="block text-sm font-medium text-gray-400 mb-1">Login<span className="text-red-500">*</span></label>
+            <input
+              type="text"
+              name="login"
+              id="login"
+              value={alunoEmEdicao.login}
+              onChange={handleInputChange}
+              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-orange-500 focus:border-orange-500 text-sm sm:text-base"
+              required
+            />
           </div>
         </div>
 
-        <div>
-          <label htmlFor="telefone" className="block text-sm font-medium text-gray-400 mb-1">Telefone<span className="text-red-500">*</span></label>
-          <input
-            type="text"
-            name="telefone"
-            id="telefone"
-            value={alunoEmEdicao.telefone}
-            onChange={handleInputChange}
-            className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-orange-500 focus:border-orange-500"
-            required
-          />
+        {/* Senha e Telefone - Grid responsivo */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label htmlFor="password" className="block text-sm font-medium text-gray-400 mb-1">
+              Senha{modalEdicaoAberto ? '' : <span className="text-red-500">*</span>}
+            </label>
+            <div className="relative">
+              <input
+                type={mostrarSenha ? "text" : "password"}
+                name="password"
+                id="password"
+                value={alunoEmEdicao?.password || ''}
+                onChange={handleInputChange}
+                className="w-full px-3 py-2 pr-10 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-orange-500 focus:border-orange-500 text-sm sm:text-base"
+                required={!modalEdicaoAberto}
+              />
+              <button
+                type="button"
+                onClick={() => setMostrarSenha(!mostrarSenha)}
+                className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-white transition-colors"
+              >
+                {mostrarSenha ? (
+                  <svg className="h-4 w-4 sm:h-5 sm:w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21" />
+                  </svg>
+                ) : (
+                  <svg className="h-4 w-4 sm:h-5 sm:w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                  </svg>
+                )}
+              </button>
+            </div>
+          </div>
+
+          <div>
+            <label htmlFor="telefone" className="block text-sm font-medium text-gray-400 mb-1">Telefone<span className="text-red-500">*</span></label>
+            <input
+              type="text"
+              name="telefone"
+              id="telefone"
+              value={alunoEmEdicao.telefone}
+              onChange={handleInputChange}
+              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-orange-500 focus:border-orange-500 text-sm sm:text-base"
+              required
+            />
+          </div>
         </div>
 
         {/* Módulo */}
-        <div className={!alunoEmEdicao.id ? "col-span-2" : "col-span-1"}>
+        <div>
           <label htmlFor="modulo" className="block text-sm font-medium text-gray-400 mb-1">Módulo</label>
           <select
             name="modulo"
             id="modulo"
             value={alunoEmEdicao.modulo}
             onChange={handleInputChange}
-            className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-orange-500 focus:border-orange-500"
+            className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-orange-500 focus:border-orange-500 text-sm sm:text-base"
           >
             <option value="1">Módulo 1: Começar</option>
             <option value="2">Módulo 2: Intermediário</option>
@@ -460,8 +464,8 @@ const AdminPage = () => {
           </select>
         </div>
 
-        {/* Endereço ocupando toda a largura */}
-        <div className="col-span-1 md:col-span-2">
+        {/* Endereço */}
+        <div>
           <label htmlFor="endereco" className="block text-sm font-medium text-gray-400 mb-1">Endereço</label>
           <input
             type="text"
@@ -469,79 +473,66 @@ const AdminPage = () => {
             id="endereco"
             value={alunoEmEdicao.endereco}
             onChange={handleInputChange}
-            className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-orange-500 focus:border-orange-500"
+            className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-orange-500 focus:border-orange-500 text-sm sm:text-base"
           />
         </div>
 
-        {/* Data de Nascimento e Nome do Pai/Mãe na mesma linha */}
-        <div>
-          <label htmlFor="dataNascimento" className="block text-sm font-medium text-gray-400 mb-1">Data de Nascimento</label>
-          <input
-            type="date"
-            name="dataNascimento"
-            id="dataNascimento"
-            value={alunoEmEdicao.dataNascimento}
-            onChange={handleInputChange}
-            className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-orange-500 focus:border-orange-500"
-          />
+        {/* Data de Nascimento e Nome do Pai/Mãe - Grid responsivo */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label htmlFor="dataNascimento" className="block text-sm font-medium text-gray-400 mb-1">Data de Nascimento</label>
+            <input
+              type="date"
+              name="dataNascimento"
+              id="dataNascimento"
+              value={alunoEmEdicao.dataNascimento}
+              onChange={handleInputChange}
+              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-orange-500 focus:border-orange-500 text-sm sm:text-base"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="nomePaiMae" className="block text-sm font-medium text-gray-400 mb-1">Nome do Pai/Mãe</label>
+            <input
+              type="text"
+              name="nomePaiMae"
+              id="nomePaiMae"
+              value={alunoEmEdicao.nomePaiMae}
+              onChange={handleInputChange}
+              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-orange-500 focus:border-orange-500 text-sm sm:text-base"
+            />
+          </div>
         </div>
 
-        <div>
-          <label htmlFor="nomePaiMae" className="block text-sm font-medium text-gray-400 mb-1">Nome do Pai/Mãe</label>
-          <input
-            type="text"
-            name="nomePaiMae"
-            id="nomePaiMae"
-            value={alunoEmEdicao.nomePaiMae}
-            onChange={handleInputChange}
-            className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-orange-500 focus:border-orange-500"
-          />
-        </div>
+        {/* Data de Início do Curso e Telefone do Responsável - Grid responsivo */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label htmlFor="dataInicioCurso" className="block text-sm font-medium text-gray-400 mb-1">Data de Início do Curso</label>
+            <input
+              type="date"
+              name="dataInicioCurso"
+              id="dataInicioCurso"
+              value={alunoEmEdicao.dataInicioCurso}
+              onChange={handleInputChange}
+              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-orange-500 focus:border-orange-500 text-sm sm:text-base"
+            />
+          </div>
 
-        {/* Data de Início do Curso e Telefone do Responsável na mesma linha */}
-        <div>
-          <label htmlFor="dataInicioCurso" className="block text-sm font-medium text-gray-400 mb-1">Data de Início do Curso</label>
-          <input
-            type="date"
-            name="dataInicioCurso"
-            id="dataInicioCurso"
-            value={alunoEmEdicao.dataInicioCurso}
-            onChange={handleInputChange}
-            className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-orange-500 focus:border-orange-500"
-          />
+          <div>
+            <label htmlFor="telefoneResponsavel" className="block text-sm font-medium text-gray-400 mb-1">Telefone do Responsável</label>
+            <input
+              type="text"
+              name="telefoneResponsavel"
+              id="telefoneResponsavel"
+              value={alunoEmEdicao.telefoneResponsavel}
+              onChange={handleInputChange}
+              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-orange-500 focus:border-orange-500 text-sm sm:text-base"
+            />
+          </div>
         </div>
-
-        <div>
-          <label htmlFor="telefoneResponsavel" className="block text-sm font-medium text-gray-400 mb-1">Telefone do Responsável</label>
-          <input
-            type="text"
-            name="telefoneResponsavel"
-            id="telefoneResponsavel"
-            value={alunoEmEdicao.telefoneResponsavel}
-            onChange={handleInputChange}
-            className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-orange-500 focus:border-orange-500"
-          />
-        </div>
-        {/* Role (Provavelmente 'student' por padrão, mas pode ser editável se necessário) */}
-        {/*
-        <div>
-          <label htmlFor="role" className="block text-sm font-medium text-gray-400 mb-1">Role</label>
-          <select
-            name="role"
-            id="role"
-            value={alunoEmEdicao.role}
-            onChange={handleInputChange}
-            className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-orange-500 focus:border-orange-500"
-            required
-          >
-            <option value="student">Student</option>
-             <option value="admin">Admin</option> // Cuidado ao permitir a criação de admins
-          </select>
-        </div>
-        */}
       </div>
     );
-  }, [alunoEmEdicao, handleInputChange, modulosDisponiveis]); // Dependências do useCallback
+  }, [alunoEmEdicao, handleInputChange, modalEdicaoAberto, mostrarSenha]);
 
   // --- Filtragem de Alunos ---
   const alunosFiltrados = useMemo(() => {
