@@ -3,12 +3,15 @@ import { ServerDataService } from '@/services/serverDataService';
 
 export async function GET() {
   try {
-    console.log('[API] GET /api/videos-liberados - Iniciando busca de vídeos liberados');
+    console.log('[API] GET /api/videos-liberados - === INICIANDO API ===');
+    console.log('[API] GET /api/videos-liberados - Chamando ServerDataService.getVideosLiberados()');
     const videosLiberados = await ServerDataService.getVideosLiberados();
+    console.log('[API] GET /api/videos-liberados - === RESULTADO RECEBIDO ===');
     console.log('[API] GET /api/videos-liberados - Resultado:', {
-      count: videosLiberados.length,
+      keys: Object.keys(videosLiberados),
       data: videosLiberados
     });
+    console.log('[API] GET /api/videos-liberados - === RETORNANDO RESPOSTA ===');
     return NextResponse.json(videosLiberados);
   } catch (error) {
     console.error('[API] GET /api/videos-liberados - Erro ao buscar vídeos liberados:', error);

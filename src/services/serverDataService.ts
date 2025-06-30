@@ -255,7 +255,8 @@ export class ServerDataService {
   // ========== VIDEOS LIBERADOS ==========
   static async getVideosLiberados(): Promise<VideosLiberados> {
     try {
-      console.log('🔍 [ServerDataService.getVideosLiberados] Iniciando busca de vídeos liberados...');
+      console.log('🔍 [ServerDataService.getVideosLiberados] === INICIANDO BUSCA ===');
+      console.log('🔍 [ServerDataService.getVideosLiberados] Chave que será usada:', KEYS.VIDEOS_LIBERADOS);
       const redis = getRedisClient();
       
       if (!redis) {
@@ -278,6 +279,17 @@ export class ServerDataService {
       }
       
       console.log('🔄 [ServerDataService.getVideosLiberados] Fazendo parse dos dados...');
+      
+      // Se já é um objeto, retorna diretamente
+      if (typeof videosStr === 'object' && videosStr !== null) {
+        console.log('✅ [ServerDataService.getVideosLiberados] Dados já são um objeto:', {
+          type: typeof videosStr,
+          data: videosStr
+        });
+        return videosStr as VideosLiberados;
+      }
+      
+      // Se é string, faz parse
       const parsedData = JSON.parse(videosStr as string);
       console.log('✅ [ServerDataService.getVideosLiberados] Dados parseados:', {
         type: typeof parsedData,
