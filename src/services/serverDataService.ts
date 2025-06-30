@@ -331,19 +331,38 @@ export class ServerDataService {
     try {
       console.log(`🎯 [ServerDataService.setPermissoesVideosAluno] Definindo permissões para aluno ${alunoId}:`, videosLiberados);
       
+      // Verificar se Redis está configurado
+      const redis = getRedisClient();
+      if (!redis) {
+        throw new Error('Redis não configurado');
+      }
+      
+      console.log(`📋 [ServerDataService] Buscando alunos existentes...`);
       const alunos = await this.getAlunos();
+      console.log(`📋 [ServerDataService] Encontrados ${alunos.length} alunos`);
+      
       const alunoIndex = alunos.findIndex(aluno => aluno.id === alunoId);
       
       if (alunoIndex === -1) {
+        console.error(`❌ [ServerDataService] Aluno com ID ${alunoId} não encontrado. Alunos disponíveis:`, alunos.map(a => a.id));
         throw new Error(`Aluno com ID ${alunoId} não encontrado`);
       }
       
+      console.log(`📝 [ServerDataService] Atualizando aluno ${alunoId} com vídeos:`, videosLiberados);
       alunos[alunoIndex].videosLiberados = videosLiberados;
       await this.saveAlunos(alunos);
+      console.log(`✅ [ServerDataService] Alunos salvos com sucesso`);
       
+      console.log(`📝 [ServerDataService] Atualizando cache de vídeos liberados...`);
       const videosLiberadosCache = await this.getVideosLiberados();
+      console.log(`📋 [ServerDataService] Cache atual:`, videosLiberadosCache);
       videosLiberadosCache[alunoId] = videosLiberados;
       await this.saveVideosLiberados(videosLiberadosCache);
+      console.log(`✅ [ServerDataService] Cache de vídeos liberados atualizado`);
+      
+      // Verificar se foi salvo corretamente
+      const verificacao = await this.getVideosLiberados();
+      console.log(`🔍 [ServerDataService] Verificação - dados salvos:`, verificacao);
       
       console.log(`✅ [ServerDataService] Permissões de vídeos definidas para aluno ${alunoId}`);
     } catch (error) {
