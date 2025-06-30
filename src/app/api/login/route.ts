@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import bcrypt from 'bcryptjs';
-import { DataService } from '../../../services/dataService';
+import { ServerDataService } from '../../../services/serverDataService';
 
 export async function POST(request: NextRequest) {
   try {
@@ -13,7 +12,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const alunos = await DataService.getAlunos();
+    const alunos = await ServerDataService.getAlunos();
 
     // Comparação direta de senhas em texto plano
     const aluno = alunos.find(a => a.login === login && a.password === password);
