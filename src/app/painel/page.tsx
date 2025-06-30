@@ -338,17 +338,16 @@ const AdminPage = () => {
 
   // Função para verificar se um vídeo está liberado
   const isVideoLiberado = (videoId: number): boolean => {
-    // Primeiro verifica o estado temporário (para mudanças não salvas no modal)
-    if (videosLiberadosTemp.includes(videoId)) {
-      return true;
+    // Se o modal está aberto, usa apenas o estado temporário
+    if (modalLiberarVideosAberto) {
+      return videosLiberadosTemp.includes(videoId);
     }
-  
-    // Depois verifica os dados reais do backend
+    
+    // Se o modal está fechado, usa os dados do backend
     if (alunoSelecionadoVideos && Array.isArray(alunoSelecionadoVideos.videosLiberados)) {
-      const isSaved = alunoSelecionadoVideos.videosLiberados.includes(videoId);
-      return isSaved;
+      return alunoSelecionadoVideos.videosLiberados.includes(videoId);
     }
-  
+    
     return false;
   };
 
