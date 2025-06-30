@@ -246,6 +246,7 @@ export class ServerDataService {
   // ========== VIDEOS LIBERADOS ==========
   static async getVideosLiberados(): Promise<VideosLiberados> {
     try {
+      console.log('🔍 [ServerDataService.getVideosLiberados] Iniciando busca de vídeos liberados...');
       const redis = getRedisClient();
       
       if (!redis) {
@@ -253,13 +254,18 @@ export class ServerDataService {
         return {};
       }
       
+      console.log('🔍 [ServerDataService.getVideosLiberados] Buscando dados do Redis com chave:', KEYS.VIDEOS_LIBERADOS);
       const videosStr = await redis.get(KEYS.VIDEOS_LIBERADOS);
+      console.log('🔍 [ServerDataService.getVideosLiberados] Dados brutos do Redis:', videosStr);
       
       if (!videosStr) {
+        console.log('⚠️ [ServerDataService.getVideosLiberados] Nenhum dado encontrado no Redis, retornando objeto vazio');
         return {};
       }
       
-      return JSON.parse(videosStr as string);
+      const parsedData = JSON.parse(videosStr as string);
+      console.log('✅ [ServerDataService.getVideosLiberados] Dados parseados:', parsedData);
+      return parsedData;
     } catch (error) {
       console.error('❌ [ServerDataService] Erro ao buscar vídeos liberados:', error);
       return {};
@@ -268,6 +274,8 @@ export class ServerDataService {
 
   static async saveVideosLiberados(videos: VideosLiberados): Promise<void> {
     try {
+      console.log('💾 [ServerDataService.saveVideosLiberados] Iniciando salvamento...');
+      console.log('💾 [ServerDataService.saveVideosLiberados] Dados a serem salvos:', videos);
       const redis = getRedisClient();
       
       if (!redis) {
@@ -275,9 +283,13 @@ export class ServerDataService {
         throw new Error('Redis não configurado no servidor');
       }
       
-      await redis.set(KEYS.VIDEOS_LIBERADOS, JSON.stringify(videos));
+      const jsonString = JSON.stringify(videos);
+      console.log('💾 [ServerDataService.saveVideosLiberados] JSON string:', jsonString);
+      console.log('💾 [ServerDataService.saveVideosLiberados] Salvando com chave:', KEYS.VIDEOS_LIBERADOS);
+      
+      await redis.set(KEYS.VIDEOS_LIBERADOS, jsonString);
       await redis.set(KEYS.LAST_UPDATED, new Date().toISOString());
-      console.log('✅ [ServerDataService] Vídeos liberados salvos no Redis');
+      console.log('✅ [ServerDataService.saveVideosLiberados] Dados salvos no Redis com sucesso');
     } catch (error) {
       console.error('❌ [ServerDataService] Erro ao salvar vídeos liberados:', error);
       throw error;
@@ -355,14 +367,18 @@ export class ServerDataService {
       
       console.log(`📝 [ServerDataService] Atualizando cache de vídeos liberados...`);
       const videosLiberadosCache = await this.getVideosLiberados();
-      console.log(`📋 [ServerDataService] Cache atual:`, videosLiberadosCache);
+      console.log(`📋 [ServerDataService] Cache atual antes da atualização:`, videosLiberadosCache);
+      console.log(`📝 [ServerDataService] Definindo vídeos para aluno ${alunoId}:`, videosLiberados);
       videosLiberadosCache[alunoId] = videosLiberados;
+      console.log(`📋 [ServerDataService] Cache após atualização local:`, videosLiberadosCache);
       await this.saveVideosLiberados(videosLiberadosCache);
-      console.log(`✅ [ServerDataService] Cache de vídeos liberados atualizado`);
+      console.log(`✅ [ServerDataService] Cache de vídeos liberados salvo no Redis`);
       
       // Verificar se foi salvo corretamente
+      console.log(`🔍 [ServerDataService] Fazendo verificação final...`);
       const verificacao = await this.getVideosLiberados();
-      console.log(`🔍 [ServerDataService] Verificação - dados salvos:`, verificacao);
+      console.log(`🔍 [ServerDataService] Verificação - dados salvos no Redis:`, verificacao);
+      console.log(`🔍 [ServerDataService] Verificação - vídeos do aluno ${alunoId}:`, verificacao[alunoId]);
       
       console.log(`✅ [ServerDataService] Permissões de vídeos definidas para aluno ${alunoId}`);
     } catch (error) {
