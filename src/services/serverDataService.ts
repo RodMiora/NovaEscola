@@ -38,6 +38,15 @@ const KEYS = {
 } as const;
 
 export class ServerDataService {
+  // ========== MÉTODOS UTILITÁRIOS ==========
+  static isRedisConfigured(): boolean {
+    return isRedisConfigured();
+  }
+
+  static getRedisClient(): Redis | null {
+    return getRedisClient();
+  }
+
   // ========== ALUNOS ==========
   static async getAlunos(): Promise<Aluno[]> {
     try {
