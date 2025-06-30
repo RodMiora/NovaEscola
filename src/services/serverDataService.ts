@@ -250,32 +250,46 @@ export class ServerDataService {
       const redis = getRedisClient();
       
       if (!redis) {
-        console.warn('⚠️ [ServerDataService.getVideosLiberados] Redis não configurado');
+        console.warn('⚠️ [ServerDataService.getVideosLiberados] Redis não configurado, retornando objeto vazio');
         return {};
       }
       
-      console.log('🔍 [ServerDataService.getVideosLiberados] Buscando dados do Redis com chave:', KEYS.VIDEOS_LIBERADOS);
+      console.log('🔍 [ServerDataService.getVideosLiberados] Buscando dados com chave:', KEYS.VIDEOS_LIBERADOS);
+      console.log('🔗 [ServerDataService.getVideosLiberados] Executando redis.get...');
       const videosStr = await redis.get(KEYS.VIDEOS_LIBERADOS);
-      console.log('🔍 [ServerDataService.getVideosLiberados] Dados brutos do Redis:', videosStr);
+      console.log('📦 [ServerDataService.getVideosLiberados] Dados brutos do Redis:', {
+        type: typeof videosStr,
+        length: typeof videosStr === 'string' ? videosStr.length : 0,
+        content: videosStr
+      });
       
       if (!videosStr) {
-        console.log('⚠️ [ServerDataService.getVideosLiberados] Nenhum dado encontrado no Redis, retornando objeto vazio');
+        console.log('📭 [ServerDataService.getVideosLiberados] Nenhum dado encontrado no Redis');
         return {};
       }
       
+      console.log('🔄 [ServerDataService.getVideosLiberados] Fazendo parse dos dados...');
       const parsedData = JSON.parse(videosStr as string);
-      console.log('✅ [ServerDataService.getVideosLiberados] Dados parseados:', parsedData);
+      console.log('✅ [ServerDataService.getVideosLiberados] Dados parseados:', {
+        type: typeof parsedData,
+        data: parsedData
+      });
       return parsedData;
     } catch (error) {
-      console.error('❌ [ServerDataService] Erro ao buscar vídeos liberados:', error);
+      console.error('❌ [ServerDataService.getVideosLiberados] Erro ao buscar vídeos liberados:', error);
       return {};
     }
   }
 
   static async saveVideosLiberados(videos: VideosLiberados): Promise<void> {
     try {
-      console.log('💾 [ServerDataService.saveVideosLiberados] Iniciando salvamento...');
-      console.log('💾 [ServerDataService.saveVideosLiberados] Dados a serem salvos:', videos);
+      console.log('💾 [ServerDataService.saveVideosLiberados] Iniciando salvamento de vídeos liberados...');
+      console.log('📊 [ServerDataService.saveVideosLiberados] Dados a serem salvos:', {
+        type: typeof videos,
+        keys: Object.keys(videos),
+        data: videos
+      });
+      
       const redis = getRedisClient();
       
       if (!redis) {
@@ -284,14 +298,32 @@ export class ServerDataService {
       }
       
       const jsonString = JSON.stringify(videos);
-      console.log('💾 [ServerDataService.saveVideosLiberados] JSON string:', jsonString);
-      console.log('💾 [ServerDataService.saveVideosLiberados] Salvando com chave:', KEYS.VIDEOS_LIBERADOS);
+      console.log('📝 [ServerDataService.saveVideosLiberados] String JSON gerada:', {
+        length: jsonString.length,
+        content: jsonString
+      });
+      console.log('🔑 [ServerDataService.saveVideosLiberados] Chave utilizada:', KEYS.VIDEOS_LIBERADOS);
       
+      console.log('🔗 [ServerDataService.saveVideosLiberados] Executando redis.set...');
       await redis.set(KEYS.VIDEOS_LIBERADOS, jsonString);
+      console.log('✅ [ServerDataService.saveVideosLiberados] redis.set executado com sucesso');
+      
+      console.log('🔗 [ServerDataService.saveVideosLiberados] Atualizando LAST_UPDATED...');
       await redis.set(KEYS.LAST_UPDATED, new Date().toISOString());
-      console.log('✅ [ServerDataService.saveVideosLiberados] Dados salvos no Redis com sucesso');
+      console.log('✅ [ServerDataService.saveVideosLiberados] LAST_UPDATED atualizado');
+      
+      // Verificação imediata para confirmar salvamento
+      console.log('🔍 [ServerDataService.saveVideosLiberados] Verificando dados salvos...');
+      const verificacao = await redis.get(KEYS.VIDEOS_LIBERADOS);
+      console.log('📋 [ServerDataService.saveVideosLiberados] Verificação dos dados salvos:', {
+        saved: !!verificacao,
+        length: typeof verificacao === 'string' ? verificacao.length : 0,
+        matches: verificacao === jsonString
+      });
+      
+      console.log('✅ [ServerDataService.saveVideosLiberados] Vídeos liberados salvos com sucesso');
     } catch (error) {
-      console.error('❌ [ServerDataService] Erro ao salvar vídeos liberados:', error);
+      console.error('❌ [ServerDataService.saveVideosLiberados] Erro ao salvar vídeos liberados:', error);
       throw error;
     }
   }
@@ -341,48 +373,101 @@ export class ServerDataService {
 
   static async setPermissoesVideosAluno(alunoId: string, videosLiberados: number[]): Promise<void> {
     try {
-      console.log(`🎯 [ServerDataService.setPermissoesVideosAluno] Definindo permissões para aluno ${alunoId}:`, videosLiberados);
+      console.log(`🎯 [ServerDataService.setPermissoesVideosAluno] === INÍCIO DO PROCESSO ===`);
+      console.log(`🎯 [ServerDataService.setPermissoesVideosAluno] Aluno ID: ${alunoId}`);
+      console.log(`🎯 [ServerDataService.setPermissoesVideosAluno] Vídeos liberados:`, {
+        count: videosLiberados.length,
+        videos: videosLiberados
+      });
       
       // Verificar se Redis está configurado
+      console.log(`🔧 [ServerDataService.setPermissoesVideosAluno] Verificando configuração do Redis...`);
       const redis = getRedisClient();
       if (!redis) {
+        console.error(`❌ [ServerDataService.setPermissoesVideosAluno] Redis não configurado!`);
         throw new Error('Redis não configurado');
       }
+      console.log(`✅ [ServerDataService.setPermissoesVideosAluno] Redis configurado corretamente`);
       
-      console.log(`📋 [ServerDataService] Buscando alunos existentes...`);
+      // Etapa 1: Buscar alunos
+      console.log(`📋 [ServerDataService.setPermissoesVideosAluno] === ETAPA 1: BUSCAR ALUNOS ===`);
       const alunos = await this.getAlunos();
-      console.log(`📋 [ServerDataService] Encontrados ${alunos.length} alunos`);
+      console.log(`📋 [ServerDataService.setPermissoesVideosAluno] Encontrados ${alunos.length} alunos`);
       
       const alunoIndex = alunos.findIndex(aluno => aluno.id === alunoId);
       
       if (alunoIndex === -1) {
-        console.error(`❌ [ServerDataService] Aluno com ID ${alunoId} não encontrado. Alunos disponíveis:`, alunos.map(a => a.id));
+        console.error(`❌ [ServerDataService.setPermissoesVideosAluno] Aluno ${alunoId} não encontrado!`);
+        console.error(`❌ [ServerDataService.setPermissoesVideosAluno] Alunos disponíveis:`, alunos.map(a => a.id));
         throw new Error(`Aluno com ID ${alunoId} não encontrado`);
       }
       
-      console.log(`📝 [ServerDataService] Atualizando aluno ${alunoId} com vídeos:`, videosLiberados);
+      console.log(`✅ [ServerDataService.setPermissoesVideosAluno] Aluno encontrado no índice ${alunoIndex}`);
+      console.log(`📋 [ServerDataService.setPermissoesVideosAluno] Vídeos atuais do aluno:`, alunos[alunoIndex].videosLiberados);
+      
+      // Etapa 2: Atualizar dados do aluno
+      console.log(`📝 [ServerDataService.setPermissoesVideosAluno] === ETAPA 2: ATUALIZAR ALUNO ===`);
       alunos[alunoIndex].videosLiberados = videosLiberados;
+      console.log(`📝 [ServerDataService.setPermissoesVideosAluno] Aluno atualizado localmente`);
+      
       await this.saveAlunos(alunos);
-      console.log(`✅ [ServerDataService] Alunos salvos com sucesso`);
+      console.log(`✅ [ServerDataService.setPermissoesVideosAluno] Dados do aluno salvos no Redis`);
       
-      console.log(`📝 [ServerDataService] Atualizando cache de vídeos liberados...`);
+      // Etapa 3: Atualizar cache de vídeos liberados
+      console.log(`📝 [ServerDataService.setPermissoesVideosAluno] === ETAPA 3: ATUALIZAR CACHE ===`);
+      console.log(`📝 [ServerDataService.setPermissoesVideosAluno] Buscando cache atual...`);
       const videosLiberadosCache = await this.getVideosLiberados();
-      console.log(`📋 [ServerDataService] Cache atual antes da atualização:`, videosLiberadosCache);
-      console.log(`📝 [ServerDataService] Definindo vídeos para aluno ${alunoId}:`, videosLiberados);
+      console.log(`📋 [ServerDataService.setPermissoesVideosAluno] Cache atual:`, {
+        type: typeof videosLiberadosCache,
+        keys: Object.keys(videosLiberadosCache),
+        data: videosLiberadosCache
+      });
+      
+      console.log(`📝 [ServerDataService.setPermissoesVideosAluno] Atualizando cache para aluno ${alunoId}...`);
       videosLiberadosCache[alunoId] = videosLiberados;
-      console.log(`📋 [ServerDataService] Cache após atualização local:`, videosLiberadosCache);
+      console.log(`📋 [ServerDataService.setPermissoesVideosAluno] Cache após atualização local:`, {
+        type: typeof videosLiberadosCache,
+        keys: Object.keys(videosLiberadosCache),
+        alunoData: videosLiberadosCache[alunoId],
+        fullData: videosLiberadosCache
+      });
+      
+      console.log(`💾 [ServerDataService.setPermissoesVideosAluno] Salvando cache atualizado...`);
       await this.saveVideosLiberados(videosLiberadosCache);
-      console.log(`✅ [ServerDataService] Cache de vídeos liberados salvo no Redis`);
+      console.log(`✅ [ServerDataService.setPermissoesVideosAluno] Cache salvo no Redis`);
       
-      // Verificar se foi salvo corretamente
-      console.log(`🔍 [ServerDataService] Fazendo verificação final...`);
+      // Etapa 4: Verificação final
+      console.log(`🔍 [ServerDataService.setPermissoesVideosAluno] === ETAPA 4: VERIFICAÇÃO FINAL ===`);
+      console.log(`🔍 [ServerDataService.setPermissoesVideosAluno] Buscando dados salvos...`);
       const verificacao = await this.getVideosLiberados();
-      console.log(`🔍 [ServerDataService] Verificação - dados salvos no Redis:`, verificacao);
-      console.log(`🔍 [ServerDataService] Verificação - vídeos do aluno ${alunoId}:`, verificacao[alunoId]);
+      console.log(`🔍 [ServerDataService.setPermissoesVideosAluno] Dados verificados:`, {
+        type: typeof verificacao,
+        keys: Object.keys(verificacao),
+        alunoData: verificacao[alunoId],
+        fullData: verificacao
+      });
       
-      console.log(`✅ [ServerDataService] Permissões de vídeos definidas para aluno ${alunoId}`);
+      const videosDoAluno = verificacao[alunoId];
+      const salvouCorretamente = Array.isArray(videosDoAluno) && 
+                                videosDoAluno.length === videosLiberados.length &&
+                                videosDoAluno.every(v => videosLiberados.includes(v));
+      
+      console.log(`🔍 [ServerDataService.setPermissoesVideosAluno] Análise da verificação:`, {
+        videosEsperados: videosLiberados,
+        videosEncontrados: videosDoAluno,
+        salvouCorretamente,
+        lengthMatch: videosDoAluno?.length === videosLiberados.length
+      });
+      
+      if (salvouCorretamente) {
+        console.log(`✅ [ServerDataService.setPermissoesVideosAluno] === SUCESSO COMPLETO ===`);
+      } else {
+        console.error(`❌ [ServerDataService.setPermissoesVideosAluno] === FALHA NA VERIFICAÇÃO ===`);
+      }
+      
+      console.log(`🎯 [ServerDataService.setPermissoesVideosAluno] === FIM DO PROCESSO ===`);
     } catch (error) {
-      console.error('❌ [ServerDataService] Erro ao definir permissões de vídeos:', error);
+      console.error('❌ [ServerDataService.setPermissoesVideosAluno] === ERRO NO PROCESSO ===', error);
       throw error;
     }
   }

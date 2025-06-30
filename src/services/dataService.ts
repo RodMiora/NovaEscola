@@ -264,33 +264,55 @@ export class DataService {
   // ========== VIDEOS LIBERADOS ==========
   static async getVideosLiberados(): Promise<VideosLiberados> {
     try {
-      console.log('🔍 [DataService.getVideosLiberados] Buscando vídeos liberados via API...');
+      console.log('🔍 [DataService.getVideosLiberados] === INÍCIO BUSCA API ===');
+      console.log('🔍 [DataService.getVideosLiberados] Fazendo fetch para /api/videos-liberados...');
+      
       // No cliente, buscar via API
       const response = await fetch('/api/videos-liberados');
+      console.log('📡 [DataService.getVideosLiberados] Resposta da API:', {
+        status: response.status,
+        statusText: response.statusText,
+        ok: response.ok
+      });
+      
       if (!response.ok) {
-        throw new Error('Erro ao buscar vídeos liberados da API');
+        throw new Error(`Erro ao buscar vídeos liberados da API: ${response.status} ${response.statusText}`);
       }
+      
+      console.log('📦 [DataService.getVideosLiberados] Fazendo parse da resposta...');
       const videosLiberados = await response.json();
+      console.log('📦 [DataService.getVideosLiberados] Dados recebidos da API:', {
+        type: typeof videosLiberados,
+        keys: Object.keys(videosLiberados || {}),
+        data: videosLiberados
+      });
       
       // Salvar no localStorage como backup
       if (typeof window !== 'undefined') {
+        console.log('💾 [DataService.getVideosLiberados] Salvando backup no localStorage...');
         localStorage.setItem(KEYS.VIDEOS_LIBERADOS, JSON.stringify(videosLiberados));
         localStorage.setItem(KEYS.LAST_UPDATED, new Date().toISOString());
+        console.log('✅ [DataService.getVideosLiberados] Backup salvo no localStorage');
       }
       
-      console.log('✅ [DataService.getVideosLiberados] Retornando vídeos liberados da API');
+      console.log('✅ [DataService.getVideosLiberados] === SUCESSO API ===');
       return videosLiberados;
     } catch (error) {
-      console.error('❌ [DataService.getVideosLiberados] Erro ao buscar vídeos liberados da API:', error);
+      console.error('❌ [DataService.getVideosLiberados] === ERRO API ===', error);
       
       // Fallback para localStorage
       if (typeof window !== 'undefined') {
+        console.log('🔄 [DataService.getVideosLiberados] Tentando fallback localStorage...');
         const videosLiberadosStr = localStorage.getItem(KEYS.VIDEOS_LIBERADOS);
         const videosLiberados = videosLiberadosStr ? JSON.parse(videosLiberadosStr) : {};
-        console.log('📦 [DataService.getVideosLiberados] Fallback localStorage: vídeos liberados');
+        console.log('📦 [DataService.getVideosLiberados] Fallback localStorage:', {
+          found: !!videosLiberadosStr,
+          data: videosLiberados
+        });
         return videosLiberados;
       }
       
+      console.log('❌ [DataService.getVideosLiberados] Retornando objeto vazio');
       return {};
     }
   }

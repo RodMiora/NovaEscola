@@ -333,27 +333,43 @@ const AdminPage = () => {
   }, [videosLiberados, alunoSelecionadoVideos?.id, modalLiberarVideosAberto]);
   
   const handleSaveVideosLiberados = async () => {
-    if (!alunoSelecionadoVideos?.id) return;
+    if (!alunoSelecionadoVideos?.id) {
+      console.error('❌ [Painel] handleSaveVideosLiberados - Nenhum aluno selecionado');
+      return;
+    }
+    
+    console.log('🎯 [Painel] handleSaveVideosLiberados === INÍCIO DO PROCESSO ===');
+    console.log('🎯 [Painel] handleSaveVideosLiberados - Dados iniciais:', {
+      alunoId: alunoSelecionadoVideos.id,
+      alunoNome: alunoSelecionadoVideos.name,
+      videosTemp: videosLiberadosTemp,
+      videosAtuais: videosLiberados[alunoSelecionadoVideos.id] || [],
+      videosLiberadosGlobalCompleto: videosLiberados
+    });
+    
     setError(null);
     try {
-      console.log('💾 [Painel] Iniciando salvamento:', {
-        alunoId: alunoSelecionadoVideos.id,
-        alunoNome: alunoSelecionadoVideos.name,
-        videosTemp: videosLiberadosTemp,
-        videosAtuais: videosLiberados[alunoSelecionadoVideos.id] || []
-      });
-      
+      console.log('📡 [Painel] handleSaveVideosLiberados - Chamando setPermissoesVideosAluno...');
       await setPermissoesVideosAluno(alunoSelecionadoVideos.id, videosLiberadosTemp);
+      console.log('✅ [Painel] handleSaveVideosLiberados - setPermissoesVideosAluno concluído');
       
-      console.log('✅ [Painel] Salvamento concluído, dados atualizados:', {
-        videosLiberadosGlobal: videosLiberados[alunoSelecionadoVideos.id] || []
+      console.log('🔄 [Painel] handleSaveVideosLiberados - Aguardando atualização dos dados...');
+      // Pequena pausa para permitir que os dados sejam atualizados
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      console.log('📊 [Painel] handleSaveVideosLiberados - Estado após salvamento:', {
+        videosLiberadosGlobal: videosLiberados,
+        videosDoAluno: videosLiberados[alunoSelecionadoVideos.id] || [],
+        videosTemp: videosLiberadosTemp
       });
       
       setNotificacao({ type: 'success', message: `Permissões de vídeo salvas para ${alunoSelecionadoVideos.name}!` });
+      console.log('✅ [Painel] handleSaveVideosLiberados === PROCESSO CONCLUÍDO ===');
+      
       // O useEffect acima vai sincronizar automaticamente o estado quando videosLiberados mudar
       fecharModais();
     } catch (err: any) {
-      console.error("❌ [Painel] Erro ao salvar permissões de vídeo:", err);
+      console.error("❌ [Painel] handleSaveVideosLiberados === ERRO NO PROCESSO ===", err);
       if (!dataError) {
         setError(err.message || "Erro ao salvar permissões de vídeo.");
         setNotificacao({ type: 'error', message: err.message || "Erro ao salvar permissões de vídeo." });
