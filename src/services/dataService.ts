@@ -1,24 +1,56 @@
 import { Redis } from '@upstash/redis';
 import { Aluno, Video, VideosLiberados } from '../hooks/types';
 
+// Função para verificar se o Redis está configurado
+function isRedisConfigured(): boolean {
+  return !!(process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN);
+}
+
 // Função para obter a instância do Redis (usando Upstash)
-function getRedisClient(): Redis {
+function getRedisClient(): Redis | null {
   console.log('🔍 [getRedisClient] Verificando variáveis de ambiente Upstash:');
   console.log('UPSTASH_REDIS_REST_URL:', process.env.UPSTASH_REDIS_REST_URL ? 'Definida' : 'Não definida');
   console.log('UPSTASH_REDIS_REST_TOKEN:', process.env.UPSTASH_REDIS_REST_TOKEN ? 'Definida' : 'Não definida');
   console.log('NODE_ENV:', process.env.NODE_ENV);
   
-  if (!process.env.UPSTASH_REDIS_REST_URL || !process.env.UPSTASH_REDIS_REST_TOKEN) {
-    console.error('❌ [getRedisClient] Variáveis de ambiente do Upstash não configuradas!');
-    throw new Error('Variáveis de ambiente do Upstash não configuradas');
+  if (!isRedisConfigured()) {
+    console.warn('⚠️ [getRedisClient] Variáveis de ambiente do Upstash não configuradas! Usando localStorage como fallback.');
+    return null;
   }
   
-  // Criar cliente Redis usando Upstash (API REST)
-  const redis = Redis.fromEnv();
-  
-  console.log('✅ [getRedisClient] Cliente Upstash Redis inicializado com sucesso');
-  return redis;
+  try {
+    // Criar cliente Redis usando Upstash (API REST)
+    const redis = Redis.fromEnv();
+    console.log('✅ [getRedisClient] Cliente Upstash Redis inicializado com sucesso');
+    return redis;
+  } catch (error) {
+    console.error('❌ [getRedisClient] Erro ao inicializar Redis:', error);
+    return null;
+  }
 }
+
+// Funções de fallback para localStorage (apenas no lado do cliente)
+const LocalStorageService = {
+  get: (key: string): any => {
+    if (typeof window === 'undefined') return null;
+    try {
+      const item = localStorage.getItem(key);
+      return item ? JSON.parse(item) : null;
+    } catch (error) {
+      console.error('Erro ao ler localStorage:', error);
+      return null;
+    }
+  },
+  
+  set: (key: string, value: any): void => {
+    if (typeof window === 'undefined') return;
+    try {
+      localStorage.setItem(key, JSON.stringify(value));
+    } catch (error) {
+      console.error('Erro ao salvar no localStorage:', error);
+    }
+  }
+};
 
 // Chaves para o KV store
 const KEYS = {
@@ -34,6 +66,13 @@ export class DataService {
     try {
       console.log('🔍 [getAlunos] Iniciando busca de alunos...');
       const redis = getRedisClient();
+      
+      if (!redis) {
+        // Usar localStorage como fallback
+        console.log('📱 [getAlunos] Usando localStorage como fallback');
+        const localData = LocalStorageService.get(KEYS.ALUNOS);
+        return Array.isArray(localData) ? localData : [];
+      }
       
       console.log('🔍 [getAlunos] Buscando chave:', KEYS.ALUNOS);
       const redisResponse = await redis.get(KEYS.ALUNOS);
@@ -95,6 +134,15 @@ export class DataService {
         // Garantir que videosLiberados seja sempre um array
         videosLiberados: Array.isArray(aluno.videosLiberados) ? aluno.videosLiberados : []
       }));
+      
+      if (!redis) {
+        // Usar localStorage como fallback
+        console.log('📱 [saveAlunos] Usando localStorage como fallback');
+        LocalStorageService.set(KEYS.ALUNOS, alunosLimpos);
+        LocalStorageService.set(KEYS.LAST_UPDATED, new Date().toISOString());
+        console.log('✅ [saveAlunos] Alunos salvos com sucesso no localStorage');
+        return;
+      }
       
       const alunosJson = JSON.stringify(alunosLimpos);
       console.log('🔍 [saveAlunos] JSON a ser salvo:', {
@@ -204,6 +252,14 @@ export class DataService {
   static async getVideos(): Promise<Video[]> {
     try {
       const redis = getRedisClient();
+      
+      if (!redis) {
+        // Usar localStorage como fallback
+        console.log('📱 [getVideos] Usando localStorage como fallback');
+        const localData = LocalStorageService.get(KEYS.VIDEOS);
+        return Array.isArray(localData) ? localData : [];
+      }
+      
       const videosStr = await redis.get(KEYS.VIDEOS);
       const videos = videosStr ? JSON.parse(videosStr as string) : [];
       return Array.isArray(videos) ? videos : [];
@@ -216,9 +272,19 @@ export class DataService {
   static async saveVideos(videos: Video[]): Promise<void> {
     try {
       const redis = getRedisClient();
+      
+      if (!redis) {
+        // Usar localStorage como fallback
+        console.log('📱 [saveVideos] Usando localStorage como fallback');
+        LocalStorageService.set(KEYS.VIDEOS, videos);
+        LocalStorageService.set(KEYS.LAST_UPDATED, new Date().toISOString());
+        console.log('✅ Vídeos salvos no localStorage');
+        return;
+      }
+      
       await redis.set(KEYS.VIDEOS, JSON.stringify(videos));
       await redis.set(KEYS.LAST_UPDATED, new Date().toISOString());
-      console.log('✅ Vídeos salvos com sucesso');
+      console.log('✅ Vídeos salvos no Redis');
     } catch (error) {
       console.error('❌ Erro ao salvar vídeos:', error);
       throw error;
@@ -280,26 +346,44 @@ export class DataService {
   // ========== VIDEOS LIBERADOS ==========
   static async getVideosLiberados(): Promise<VideosLiberados> {
     try {
-      const alunos = await this.getAlunos();
-      const videosLiberados: VideosLiberados = {};
+      const redis = getRedisClient();
       
-      alunos.forEach(aluno => {
-        videosLiberados[aluno.id] = aluno.videosLiberados || [];
-      });
+      if (!redis) {
+        // Usar localStorage como fallback
+        console.log('📱 [getVideosLiberados] Usando localStorage como fallback');
+        const localData = LocalStorageService.get(KEYS.VIDEOS_LIBERADOS);
+        return localData || {};
+      }
       
-      return videosLiberados;
+      const videosStr = await redis.get(KEYS.VIDEOS_LIBERADOS);
+      
+      if (!videosStr) {
+        return {};
+      }
+      
+      return JSON.parse(videosStr as string);
     } catch (error) {
       console.error('❌ Erro ao buscar vídeos liberados:', error);
       return {};
     }
   }
 
-  static async saveVideosLiberados(videos: VideosLiberados[]): Promise<void> {
+  static async saveVideosLiberados(videos: VideosLiberados): Promise<void> {
     try {
       const redis = getRedisClient();
+      
+      if (!redis) {
+        // Usar localStorage como fallback
+        console.log('📱 [saveVideosLiberados] Usando localStorage como fallback');
+        LocalStorageService.set(KEYS.VIDEOS_LIBERADOS, videos);
+        LocalStorageService.set(KEYS.LAST_UPDATED, new Date().toISOString());
+        console.log('✅ Vídeos liberados salvos no localStorage');
+        return;
+      }
+      
       await redis.set(KEYS.VIDEOS_LIBERADOS, JSON.stringify(videos));
       await redis.set(KEYS.LAST_UPDATED, new Date().toISOString());
-      console.log('✅ Vídeos liberados salvos com sucesso');
+      console.log('✅ Vídeos liberados salvos no Redis');
     } catch (error) {
       console.error('❌ Erro ao salvar vídeos liberados:', error);
       throw error;
@@ -353,6 +437,9 @@ export class DataService {
 
   static async setPermissoesVideosAluno(alunoId: string, videosLiberados: number[]): Promise<void> {
     try {
+      console.log(`🎯 [setPermissoesVideosAluno] Definindo permissões para aluno ${alunoId}:`, videosLiberados);
+      
+      // Atualizar dados do aluno
       const alunos = await this.getAlunos();
       const alunoIndex = alunos.findIndex(aluno => aluno.id === alunoId);
       
@@ -364,7 +451,16 @@ export class DataService {
       alunos[alunoIndex].videosLiberados = videosLiberados;
       await this.saveAlunos(alunos);
       
-      console.log(`✅ Permissões de vídeos definidas para aluno ${alunoId}`);
+      // Também atualizar o cache de vídeos liberados
+      const videosLiberadosCache = await this.getVideosLiberados();
+      videosLiberadosCache[alunoId] = videosLiberados;
+      await this.saveVideosLiberados(videosLiberadosCache);
+      
+      console.log(`✅ Permissões de vídeos definidas para aluno ${alunoId}:`, {
+        videosLiberados,
+        salvoEmAlunos: true,
+        salvoEmCache: true
+      });
     } catch (error) {
       console.error('❌ Erro ao definir permissões de vídeos:', error);
       throw error;
@@ -375,6 +471,13 @@ export class DataService {
   static async getLastUpdated(): Promise<string> {
     try {
       const redis = getRedisClient();
+      
+      if (!redis) {
+        // Usar localStorage como fallback
+        const localData = LocalStorageService.get(KEYS.LAST_UPDATED);
+        return localData || new Date().toISOString();
+      }
+      
       const lastUpdated = await redis.get(KEYS.LAST_UPDATED);
       return lastUpdated as string || new Date().toISOString();
     } catch (error) {
@@ -386,13 +489,26 @@ export class DataService {
   static async clearAllData(): Promise<void> {
     try {
       const redis = getRedisClient();
+      
+      if (!redis) {
+        // Limpar localStorage como fallback
+        console.log('📱 [clearAllData] Limpando localStorage como fallback');
+        if (typeof window !== 'undefined') {
+          Object.values(KEYS).forEach(key => {
+            localStorage.removeItem(key);
+          });
+        }
+        console.log('✅ Todos os dados foram limpos do localStorage');
+        return;
+      }
+      
       await Promise.all([
         redis.del(KEYS.ALUNOS),
         redis.del(KEYS.VIDEOS),
         redis.del(KEYS.VIDEOS_LIBERADOS),
         redis.del(KEYS.LAST_UPDATED)
       ]);
-      console.log('✅ Todos os dados foram limpos');
+      console.log('✅ Todos os dados foram limpos do Redis');
     } catch (error) {
       console.error('❌ Erro ao limpar dados:', error);
       throw error;

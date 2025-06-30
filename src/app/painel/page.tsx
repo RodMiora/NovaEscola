@@ -10,6 +10,7 @@ import { useDataSync } from "@/hooks/useDataSync"; // <--- Importando useDataSyn
 // import { useSyncService } from "@/services/syncService"; // Se syncService for diferente de useDataSync
 // Importando as interfaces do seu hook/types
 import { Aluno, Video } from "@/hooks/types"; // <--- Adjusted path to use @/ alias
+import SyncStatus from "@/components/SyncStatus";
 // Interfaces adicionais (se não estiverem em hooks/types)
 interface Module {
   id: number;
@@ -603,6 +604,9 @@ const AdminPage = () => {
           </button>
         </div>
       </div>
+
+      {/* Status de Sincronização */}
+      <SyncStatus className="mb-6" />
 
       {/* Navegação por Abas */}
       <div className="mb-6 border-b border-gray-700">
