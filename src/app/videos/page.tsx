@@ -279,17 +279,42 @@ export default function VideosPage() {
     setMostrarModalYoutube(true);
   };
 
-  const salvarLinkYoutube = (e: React.FormEvent) => {
+  const salvarLinkYoutube = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!videoSelecionado) return;
     
-    const novosLinks = { ...youtubeLinks, [videoSelecionado.id]: videoSelecionado.youtubeLink || '' };
-    setYoutubeLinks(novosLinks);
-    localStorage.setItem('youtubeLinks', JSON.stringify(novosLinks));
+    try {
+      // Salvar via API
+      const response = await fetch('/api/youtube-links', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          videoId: videoSelecionado.id,
+          url: videoSelecionado.youtubeLink || ''
+        })
+      });
+      
+      if (response.ok) {
+        const result = await response.json();
+        // Atualizar estado local
+        const novosLinks = { ...youtubeLinks, [videoSelecionado.id]: videoSelecionado.youtubeLink || '' };
+        setYoutubeLinks(novosLinks);
+        // Manter backup no localStorage
+        localStorage.setItem('youtubeLinks', JSON.stringify(novosLinks));
+        
+        setNotificacao({ tipo: 'sucesso', texto: 'Link do YouTube salvo com sucesso!' });
+        console.log('✅ Link salvo via API:', result);
+      } else {
+        throw new Error('Erro ao salvar link via API');
+      }
+    } catch (error) {
+      console.error('❌ Erro ao salvar link:', error);
+      setNotificacao({ tipo: 'erro', texto: 'Erro ao salvar link do YouTube!' });
+    }
     
-    setNotificacao({ tipo: 'sucesso', texto: 'Link do YouTube salvo com sucesso!' });
     setMostrarModalYoutube(false);
-    
     setTimeout(() => setNotificacao(null), 3000);
   };
 
@@ -344,11 +369,36 @@ export default function VideosPage() {
     
     checkAdmin();
     
-    // Carregar links do YouTube salvos
-    const savedLinks = localStorage.getItem('youtubeLinks');
-    if (savedLinks) {
-      setYoutubeLinks(JSON.parse(savedLinks));
-    }
+    // Carregar links do YouTube via API
+    const carregarLinksYoutube = async () => {
+      try {
+        console.log('🔄 Carregando links do YouTube via API...');
+        const response = await fetch('/api/youtube-links');
+        if (response.ok) {
+          const links = await response.json();
+          console.log('✅ Links do YouTube carregados via API:', links);
+          setYoutubeLinks(links);
+          // Manter backup no localStorage
+          localStorage.setItem('youtubeLinks', JSON.stringify(links));
+        } else {
+          console.warn('⚠️ Erro ao carregar links via API, tentando localStorage...');
+          // Fallback para localStorage
+          const savedLinks = localStorage.getItem('youtubeLinks');
+          if (savedLinks) {
+            setYoutubeLinks(JSON.parse(savedLinks));
+          }
+        }
+      } catch (error) {
+        console.error('❌ Erro ao carregar links do YouTube:', error);
+        // Fallback para localStorage
+        const savedLinks = localStorage.getItem('youtubeLinks');
+        if (savedLinks) {
+          setYoutubeLinks(JSON.parse(savedLinks));
+        }
+      }
+    };
+    
+    carregarLinksYoutube();
     
     setIsMounted(true);
   }, []);
