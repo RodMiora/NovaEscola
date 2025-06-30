@@ -17,7 +17,8 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const { alunoId, videoIds } = await request.json();
-    await ServerDataService.saveVideosLiberados({ [alunoId]: videoIds });
+    // Correção: usar setPermissoesVideosAluno para sincronização completa
+    await ServerDataService.setPermissoesVideosAluno(alunoId, videoIds);
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Erro ao definir permissões:', error);
