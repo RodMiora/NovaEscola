@@ -1,7 +1,7 @@
 // Verificar se o endpoint já trata atualizações parciais corretamente
 import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
-import { DataService } from '../../../../services/dataService';
+import { ServerDataService } from '../../../../services/serverDataService';
 
 export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
   try {
@@ -11,7 +11,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     // Se password estiver presente, manter em texto plano
     const dadosAtualizados = { ...body };
     
-    const alunoAtualizado = await DataService.atualizarAluno(id, dadosAtualizados);
+    const alunoAtualizado = await ServerDataService.atualizarAluno(id, dadosAtualizados);
     
     if (!alunoAtualizado) {
       return NextResponse.json(
@@ -33,7 +33,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
 export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
   try {
     const { id } = params;
-    await DataService.removerAluno(id);
+    await ServerDataService.removerAluno(id);
     
     return NextResponse.json({
       success: true,

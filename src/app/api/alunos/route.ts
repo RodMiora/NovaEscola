@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import bcrypt from 'bcryptjs';
-import { DataService } from '../../../services/dataService';
+import { ServerDataService } from '../../../services/serverDataService';
 
 export async function GET() {
   try {
-    const alunos = await DataService.getAlunos();
+    const alunos = await ServerDataService.getAlunos();
     return NextResponse.json(alunos);
   } catch (error) {
     console.error('Erro ao buscar alunos:', error);
@@ -39,7 +38,7 @@ export async function POST(request: NextRequest) {
       videosLiberados: []
     };
 
-    await DataService.adicionarAluno(novoAluno);
+    const alunoAdicionado = await ServerDataService.adicionarAluno(novoAluno);
     return NextResponse.json(novoAluno, { status: 201 });
   } catch (error) {
     console.error('Erro ao adicionar aluno:', error);

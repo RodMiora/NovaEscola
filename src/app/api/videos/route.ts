@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { DataService } from '../../../services/dataService';
+import { ServerDataService } from '../../../services/serverDataService';
 
 export async function GET() {
   try {
-    const videos = await DataService.getVideos();
+    const videos = await ServerDataService.getVideos();
     return NextResponse.json(videos);
   } catch (error) {
     console.error('Erro ao buscar vídeos:', error);
@@ -17,7 +17,7 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const video = await request.json();
-    await DataService.adicionarVideo(video);
+    await ServerDataService.adicionarVideo(video);
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Erro ao adicionar vídeo:', error);

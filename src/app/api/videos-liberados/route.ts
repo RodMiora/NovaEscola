@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { DataService } from '../../../services/dataService';
+import { ServerDataService } from '../../../services/serverDataService';
 
 export async function GET() {
   try {
-    const videosLiberados = await DataService.getVideosLiberados();
+    const videosLiberados = await ServerDataService.getVideosLiberados();
     return NextResponse.json(videosLiberados);
   } catch (error) {
     console.error('Erro ao buscar vídeos liberados:', error);
@@ -17,7 +17,7 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const { alunoId, videoIds } = await request.json();
-    await DataService.setPermissoesVideosAluno(alunoId, videoIds);
+    await ServerDataService.saveVideosLiberados({ [alunoId]: videoIds });
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Erro ao definir permissões:', error);
