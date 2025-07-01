@@ -1,7 +1,7 @@
 {
-  "name": "Nova Escola",
-  "short_name": "Nova Escola",
-  "description": "Plataforma de ensino musical online - Nova Escola",
+  "name": "Escola de Música Coutinho",
+  "short_name": "Coutinho",
+  "description": "Plataforma de ensino musical online - Escola de Música Coutinho",
   "start_url": "/",
   "display": "standalone",
   "orientation": "portrait",
