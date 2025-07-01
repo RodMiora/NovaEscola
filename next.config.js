@@ -1,4 +1,11 @@
 /** @type {import('next').NextConfig} */
+const withPWA = require('next-pwa')({
+  dest: 'public', // Onde o service worker e o manifest serão gerados
+  register: true, // Registra o service worker automaticamente
+  skipWaiting: true, // Ativa o novo service worker imediatamente após a instalação
+  disable: process.env.NODE_ENV === 'development', // Desabilita o PWA em desenvolvimento para facilitar o debug
+});
+
 const nextConfig = {
   images: {
     domains: ['localhost', 'source.unsplash.com'],
@@ -13,4 +20,4 @@ const nextConfig = {
   },
 }
 
-module.exports = nextConfig
+module.exports = withPWA(nextConfig)

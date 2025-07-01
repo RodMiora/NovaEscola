@@ -3,8 +3,18 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Escola de Música",
-  description: "Plataforma de ensino musical online",
+  title: "Nova Escola",
+  description: "Seu aplicativo Nova Escola para acesso rápido.",
+  manifest: "/manifest.json",
+  themeColor: "#007bff",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Nova Escola",
+  },
+  icons: {
+    apple: "/icons/icon-192x192.svg",
+  },
 };
 
 export default function RootLayout({
